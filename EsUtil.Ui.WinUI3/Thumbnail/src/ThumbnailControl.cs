@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Logging;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.WinUI3.Interop.Imaging;
 using Microsoft.UI;
@@ -302,8 +303,11 @@ public sealed partial class ThumbnailControl : Grid
     {
         if (index >= 0 && index < _items.Count)
         {
+            var previous = _items[index].Caption;
             _items[index].SetCaption(caption);
             ApplyState(index);
+            _log.LogSettingChangedTrace(
+                $"Caption[{index}]", LogText.ToPreview(previous), LogText.ToPreview(caption));
         }
     }
 

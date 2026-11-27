@@ -343,7 +343,7 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 | --- | --- |
 | `MarqueeInteractionState` enum | 操作状態（NoSelection / StartPointNudging / Dragging / DraggingNudging / Selected / SelectedNudging）。 コアが所有 |
 | `MarqueeSnapshot` readonly record struct | 状態 Snapshot（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive。 `HasSelection` は導出プロパティ）。 値セマンティクスで比較可能。 **`SelectionSourceRect` は `EsRect`、`MousePosition` は `EsPoint`**（UI 非依存）。 ドラッグ中かどうかは `State`（`Dragging` / `DraggingNudging`）で判定する |
-| `SelectionRectEventArgs` | 選択矩形通知（`Rect` は Avalonia 型・対象座標系。 `Snapshot` を同梱） |
+| `SelectionRectEventArgs` | 選択矩形通知（`Rect` はコアの `EsRect`・対象座標系。 `Snapshot` を同梱） |
 | `MarqueePointEventArgs` | 座標通知（`Point` はコアの `EsPoint`・対象座標系。 `Snapshot` を同梱） |
 | `MarqueeRenderedEventArgs` | 描画完了通知（`Context` = `DrawingContext`（描画中のみ有効）/ `Content` = `MarqueeDrawPlan`（外観・注目矩形・装飾矩形・ハンドル・マーカー・層の順序・ラベル配置）） |
 | `MarqueeHitTarget` enum | ドラッグハンドル種別（カーソル形状マッピング用）。 コアが所有 |

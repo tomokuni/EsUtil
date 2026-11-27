@@ -96,7 +96,7 @@ foreach (var file in files)
 }
 
 // 生成が終わった画像は添字で差し替える
-list.SetImage(index, bitmap);
+list.SetImage(index, image);
 
 // 見えている項目を先に作る
 var visible = list.VisibleRange;

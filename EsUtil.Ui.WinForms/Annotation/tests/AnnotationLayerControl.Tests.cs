@@ -169,8 +169,8 @@ public class AnnotationLayerControlTests
         using var layer = CreateLayer(200, 120);
         layer.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
 
-        layer.SelectText(1, 2);
-        Assert.True(layer.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
+        layer.Select(1, 2);
+        Assert.True(layer.ApplyStyle(TextDefaults.DefaultStyle with { IsBold = true }));
 
         var text = Assert.IsType<BubbleAnnotation>(layer.Selected).Text;
         Assert.False(text.StyleAt(0).IsBold);
@@ -195,7 +195,7 @@ public class AnnotationLayerControlTests
         };
         layer.AddBubble(new EsRect(10, 10, 160, 90), "本文");
 
-        Assert.True(layer.BeginTextEditing());
+        Assert.True(layer.BeginEdit());
         using var composed = layer.RenderComposedImage();
         Assert.True(CountPixels(composed, textColor) > 0, "編集中に本文が描かれていません。");
     }

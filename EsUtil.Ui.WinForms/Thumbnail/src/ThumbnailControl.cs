@@ -2,6 +2,9 @@ using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Logging;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.WinForms.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -241,6 +244,13 @@ public sealed class ThumbnailControl : ScrollableControl
     public ThumbnailRange VisibleRange
         => EnsureLayout().VisibleRange(-AutoScrollPosition.Y, ClientSize.Height);
 
+    /// <summary>最後に解決した配置を取得する。</summary>
+    /// <value>一覧の配置。 未レイアウトの場合は <see langword="null"/>。</value>
+    /// <remarks>外枠の矩形・可視範囲はこの配置から引く（配置を 2 度解かない）。</remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public new ThumbnailLayoutResult? Layout => _layout;
+
     /// <summary>項目の外枠の矩形（内容の座標）を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 範囲外の場合は空の矩形。</returns>
@@ -264,12 +274,12 @@ public sealed class ThumbnailControl : ScrollableControl
     }
 
     /// <summary>サムネイルを 1 件追加する。</summary>
-    /// <param name="image">表示する画像。 所有権は本コントロールへ移る。</param>
+    /// <param name="image">表示する画像。 所有権は移動しない（本コントロールは表示用の複製を持つ）。</param>
     /// <param name="caption">サムネイルの下へ表示する名前。</param>
     /// <param name="toolTip">ツールヒント。 null または空の場合は表示しない。</param>
     /// <param name="tag">2 回押しの通知へ渡す任意の値。</param>
     /// <returns>追加した項目の添字。</returns>
-    public int Add(Bitmap? image, string caption, string? toolTip = null, object? tag = null)
+    public int Add(EsReadOnlyBitmap? image, string caption, string? toolTip = null, object? tag = null)
     {
         var item = new Item(image, caption, toolTip, tag);
         item.UpdateHeight(ImageWidth);
@@ -282,8 +292,8 @@ public sealed class ThumbnailControl : ScrollableControl
 
     /// <summary>項目の画像を差し替える。</summary>
     /// <param name="index">項目の添字。</param>
-    /// <param name="image">新しい画像。 所有権は本コントロールへ移る。 直前の画像は解放する。</param>
-    public void SetImage(int index, Bitmap? image)
+    /// <param name="image">新しい画像。 null の場合は画像を消す。</param>
+    public void SetImage(int index, EsReadOnlyBitmap? image)
     {
         if (index < 0 || index >= _items.Count)
         {
@@ -291,13 +301,11 @@ public sealed class ThumbnailControl : ScrollableControl
         }
 
         var item = _items[index];
-        var previous = item.Image;
-        var previousDescription = ThumbnailLogMessage.Describe(previous);
-        item.Image = image;
-        previous?.Dispose();
+        var previous = item.Source;
+        item.SetImage(image);
         item.UpdateHeight(ImageWidth);
         InvalidateLayout();
-        _log.LogImageChanged($"Image[{index}]", previousDescription, ThumbnailLogMessage.Describe(image));
+        _log.LogImageChanged($"Image[{index}]", previous, image);
     }
 
     /// <summary>項目の名前を差し替える。</summary>
@@ -307,8 +315,11 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         if (index >= 0 && index < _items.Count)
         {
+            var previous = _items[index].Caption;
             _items[index].Caption = caption;
             Invalidate();
+            _log.LogSettingChangedTrace(
+                $"Caption[{index}]", LogText.ToPreview(previous), LogText.ToPreview(caption));
         }
     }
 
@@ -711,10 +722,13 @@ public sealed class ThumbnailControl : ScrollableControl
             Math.Max(0, (int)Math.Round(rect.Height)));
 
     /// <summary>一覧に並べる 1 件（画像・名前・状態）。</summary>
-    private sealed class Item(Bitmap? image, string caption, string? toolTip, object? tag)
+    private sealed class Item(EsReadOnlyBitmap? image, string caption, string? toolTip, object? tag)
     {
-        /// <summary>表示する画像（本項目が所有する）。</summary>
-        public Bitmap? Image { get; set; } = image;
+        /// <summary>受け取った画像（真実。 所有しない）。</summary>
+        public EsReadOnlyBitmap? Source { get; private set; } = image;
+
+        /// <summary>表示用の画像（本項目が所有する。 GDI+ で描くためにコアの画像から作る）。</summary>
+        public Bitmap? Image { get; private set; } = ToDrawingBitmap(image);
 
         /// <summary>表示する名前。</summary>
         public string Caption { get; set; } = caption;
@@ -728,11 +742,26 @@ public sealed class ThumbnailControl : ScrollableControl
         /// <summary>画像の表示高さ（DIP）。</summary>
         public double ImageHeight { get; private set; }
 
+        /// <summary>表示する画像を差し替える（直前の表示用の画像は解放する）。</summary>
+        /// <param name="value">新しい画像。 null の場合は画像を消す。</param>
+        public void SetImage(EsReadOnlyBitmap? value)
+        {
+            Image?.Dispose();
+            Source = value;
+            Image = ToDrawingBitmap(value);
+        }
+
         /// <summary>画像の縦横比から表示高さを求め直す。</summary>
         /// <param name="imageWidth">画像の幅（DIP）。</param>
         public void UpdateHeight(double imageWidth)
-            => ImageHeight = Image is null
+            => ImageHeight = Source is null
                 ? imageWidth
-                : ThumbnailPresenter.ResolveImageHeight(imageWidth, Image.Width, Image.Height);
+                : ThumbnailPresenter.ResolveImageHeight(imageWidth, Source.Width, Source.Height);
+
+        /// <summary>コアの画像を GDI+ の画像へ変換する（変換は Interop が単一所有する）。</summary>
+        /// <param name="source">コアの画像。 null は画像なし。</param>
+        /// <returns>GDI+ の画像。 null は画像なし。</returns>
+        private static Bitmap? ToDrawingBitmap(EsReadOnlyBitmap? source)
+            => source is null ? null : EsBitmapDrawingInterop.ToDrawingBitmap(source);
     }
 }

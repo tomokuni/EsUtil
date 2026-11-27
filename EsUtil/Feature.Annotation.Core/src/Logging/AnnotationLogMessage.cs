@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Logging;
 using EsUtil.Platform.Core.Palette;
 using Microsoft.Extensions.Logging;
 
@@ -221,7 +222,7 @@ public static partial class AnnotationLogMessage
             NumberText.Format(bounds.Y),
             NumberText.Format(bounds.Width),
             NumberText.Format(bounds.Height),
-            ToPreview(text));
+            LogText.ToPreview(text));
     }
 
     /// <summary>重なり順の変更を記録する（生成メソッド）。</summary>
@@ -497,7 +498,7 @@ public static partial class AnnotationLogMessage
         }
 
         logger.LogEditingChangedCore(
-            Prefix, editing ? "開始" : "終了", caret, selectionStart, selectionLength, ToPreview(text));
+            Prefix, editing ? "開始" : "終了", caret, selectionStart, selectionLength, LogText.ToPreview(text));
     }
 
     /// <summary>履歴の移動（元に戻す・やり直す）を記録する（生成メソッド）。</summary>
@@ -545,7 +546,7 @@ public static partial class AnnotationLogMessage
             return;
         }
 
-        logger.LogTextStyleAppliedCore(Prefix, start, length, ToPreview(ResolveRangeText(text, start, length)));
+        logger.LogTextStyleAppliedCore(Prefix, start, length, LogText.ToPreview(ResolveRangeText(text, start, length)));
     }
 
     /// <summary>書式を適用した範囲の文字を切り出す（本文全体を記録しないため）。</summary>
@@ -587,7 +588,7 @@ public static partial class AnnotationLogMessage
             return;
         }
 
-        logger.LogTextChangedCore(Prefix, length, ToPreview(text));
+        logger.LogTextChangedCore(Prefix, length, LogText.ToPreview(text));
     }
 
     /// <summary>本文の操作（コピー・切り取り・貼り付け）を記録する（生成メソッド）。</summary>
@@ -623,7 +624,7 @@ public static partial class AnnotationLogMessage
             return;
         }
 
-        logger.LogTextOperationCore(Prefix, operation, caret, selectionStart, selectionLength, ToPreview(text));
+        logger.LogTextOperationCore(Prefix, operation, caret, selectionStart, selectionLength, LogText.ToPreview(text));
     }
 
     /// <summary>本文の選択範囲の変更を記録する（生成メソッド）。</summary>
@@ -657,25 +658,9 @@ public static partial class AnnotationLogMessage
             return;
         }
 
-        logger.LogTextSelectionChangedCore(Prefix, caret, selectionStart, selectionLength, ToPreview(text));
+        logger.LogTextSelectionChangedCore(Prefix, caret, selectionStart, selectionLength, LogText.ToPreview(text));
     }
 
-    /// <summary>ログに載せる文字列を整形する（改行を 1 行にし、先頭 100 文字へ切り詰める）。</summary>
-    /// <param name="text">対象の文字列。</param>
-    /// <returns>整形した文字列。</returns>
-    /// <remarks>
-    /// <b>値は大きくなりうる</b>: 本文は自由入力であり、そのまま記録すると 1 行が数百 KB になる。
-    /// 障害の切り分けに要るのは先頭の内容だけであるため、100 文字で切って末尾に <c>…</c> を付ける。
-    /// </remarks>
-    internal static string ToPreview(string text)
-    {
-        const int MaxLength = 100;
-
-        var singleLine = text.Replace("\r\n", "\n", StringComparison.Ordinal)
-            .Replace('\r', '\n')
-            .Replace("\n", "\\n", StringComparison.Ordinal);
-        return singleLine.Length <= MaxLength ? singleLine : string.Concat(singleLine.AsSpan(0, MaxLength), "…");
-    }
 
     /// <summary>フローティング パネルの表示・終了を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] パネル: {Kind} {State}</c></remarks>

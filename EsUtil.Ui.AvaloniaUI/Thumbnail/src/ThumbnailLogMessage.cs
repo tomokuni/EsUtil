@@ -1,5 +1,5 @@
-using Avalonia.Media;
 using System.Globalization;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Ui.AvaloniaUI.Thumbnail;
@@ -65,7 +65,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="oldValue">変更前の画像（未設定は null）。</param>
     /// <param name="newValue">変更後の画像（未設定は null）。</param>
     /// <remarks>LogLevel: Trace（一覧の項目ごとに繰り返されるため。 規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する。</remarks>
-    internal static void LogImageChanged(this ILogger logger, string name, IImage? oldValue, IImage? newValue)
+    internal static void LogImageChanged(this ILogger logger, string name, EsReadOnlyBitmap? oldValue, EsReadOnlyBitmap? newValue)
     {
         if (ReferenceEquals(oldValue, newValue) || !logger.IsEnabled(LogLevel.Trace))
         {
@@ -127,6 +127,6 @@ internal static partial class ThumbnailLogMessage
     /// <summary>画像をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>
     /// <param name="image">対象の画像。 null は「画像なし」。</param>
     /// <returns><c>幅x高さ</c> 形式の文字列。 null は <c>null</c>。</returns>
-    private static string Describe(IImage? image)
-        => image is null ? "null" : $"{(int)image.Size.Width}x{(int)image.Size.Height}";
+    private static string Describe(EsReadOnlyBitmap? image)
+        => image is null ? "null" : $"{image.Width}x{image.Height}";
 }

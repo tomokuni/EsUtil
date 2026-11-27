@@ -75,7 +75,7 @@ public static class MainWindow
         properties.Add(SampleSettings.Slider("行間", 1.2, 0.8, 2.0, 0.1, true, value => editor.LineHeightFactor = value));
         properties.Add(SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => editor.SourceToClientScaling = value));
         properties.Add(SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
-            editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })));
+            editor.ApplyStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })));
         properties.Add(SampleSettings.Check("入力を受け付ける", true, value => editor.IsInputEnabled = value));
         properties.Add(SampleSettings.Choice("書式バーの出し方", ["自前で埋め込む（カスタム）", "ポップアップで出す"], 0, index => UpdateHosting(index == 1)));
         properties.Add(SampleSettings.Check("編集中に書式バーを自動表示", true, value =>
@@ -94,8 +94,8 @@ public static class MainWindow
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Spacing(6);
         methods.Add(SampleSettings.Buttons(
-            ("編集を開始", () => editor.BeginEditing()),
-            ("編集を終了", () => editor.EndEditing()),
+            ("編集を開始", () => editor.BeginEdit()),
+            ("編集を終了", () => editor.EndEdit()),
             ("すべて選択", () => editor.SelectAll())));
         methods.Add(SampleSettings.Buttons(
             ("先頭 5 文字を選択", () => editor.Select(0, 5)),
@@ -115,14 +115,14 @@ public static class MainWindow
             ("前を削除", () => editor.DeleteAtCaret(forward: false)),
             ("後を削除", () => editor.DeleteAtCaret(forward: true))));
         methods.Add(SampleSettings.Buttons(
-            ("太字の切替", () => editor.TransformTextStyle(static style => style with { IsBold = !style.IsBold })),
-            ("斜体の切替", () => editor.TransformTextStyle(static style => style with { IsItalic = !style.IsItalic })),
-            ("下線の切替", () => editor.TransformTextStyle(static style => style with { IsUnderline = !style.IsUnderline }))));
+            ("太字の切替", () => editor.TransformStyle(static style => style with { IsBold = !style.IsBold })),
+            ("斜体の切替", () => editor.TransformStyle(static style => style with { IsItalic = !style.IsItalic })),
+            ("下線の切替", () => editor.TransformStyle(static style => style with { IsUnderline = !style.IsUnderline }))));
         methods.Add(SampleSettings.Buttons(
-            ("取り消し線の切替", () => editor.TransformTextStyle(static style => style with { IsStrike = !style.IsStrike })),
-            ("文字色を変える", () => editor.ApplyTextStyle(
+            ("取り消し線の切替", () => editor.TransformStyle(static style => style with { IsStrike = !style.IsStrike })),
+            ("文字色を変える", () => editor.ApplyStyle(
                 TextDefaults.DefaultStyle with { Color = System.Drawing.Color.FromArgb(255, 0, 90, 200) })),
-            ("書式を戻す", () => editor.ApplyTextStyle(TextDefaults.DefaultStyle))));
+            ("書式を戻す", () => editor.ApplyStyle(TextDefaults.DefaultStyle))));
         methods.Add(SampleSettings.Buttons(
             ("選択をコピー", () => _ = editor.CopyAsync()),
             ("選択を切り取り", () => _ = editor.CutAsync()),
@@ -151,7 +151,7 @@ public static class MainWindow
             window.Loaded += () =>
             {
                 UpdateHosting(popup: true);
-                editor.BeginEditing();
+                editor.BeginEdit();
                 editor.Select(0, 5);
                 UpdateFormatBar();
             };
@@ -209,7 +209,7 @@ public static class MainWindow
         // 本文を先頭の 1 行へ戻す（編集の状態も捨てる）
         void ResetText()
         {
-            editor.EndEditing();
+            editor.EndEdit();
             editor.RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
             UpdateStatus();
         }

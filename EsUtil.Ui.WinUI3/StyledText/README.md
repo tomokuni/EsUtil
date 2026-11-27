@@ -60,11 +60,11 @@ var editor = new StyledTextControl
 editor.RichTextChanged += (_, _) => Save(editor.RichTextValue);
 
 // 編集を始める（キャレットは本文の末尾）
-editor.BeginEditing();
+editor.BeginEdit();
 
 // すべての操作は API からも行える（キー入力は同じ API を呼ぶ）
 editor.Select(2, 4);
-editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
+editor.ApplyStyle(TextDefaults.DefaultStyle with { IsBold = true });
 ```
 
 ## 6. 操作

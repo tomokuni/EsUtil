@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.SampleKit;
 using EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.Imaging;
 using EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.Presentation;
@@ -93,7 +92,7 @@ public sealed class MainWindow : Window
                 SampleSettings.Buttons(
                     ("先頭の説明を変える", () => _thumbnails.SetCaption(0, $"説明を変更 {DateTime.Now:HH:mm:ss}")),
                     ("先頭の画像を差し替える", () =>
-                        _thumbnails.SetImage(0, EsReadOnlyBitmap.FromBitmap(_images[0]).ToAvaloniaBitmap())),
+                        _thumbnails.SetImage(0, EsReadOnlyBitmap.FromBitmap(_images[0]))),
                     ("先頭の矩形を状態へ（SlotBounds）", ShowSlotBounds),
                     ("可視範囲を状態へ（VisibleRange）", ShowVisibleRange),
                     ("提示層の状態を出す（Presentation）", ShowPresentation)),
@@ -182,7 +181,7 @@ public sealed class MainWindow : Window
         _images.Add(image);
 
         _thumbnails.Add(
-            EsReadOnlyBitmap.FromBitmap(image).ToAvaloniaBitmap(),
+            EsReadOnlyBitmap.FromBitmap(image),
             $"capture-{_count:D4}.png",
             $"生成した画像 {_count}");
 

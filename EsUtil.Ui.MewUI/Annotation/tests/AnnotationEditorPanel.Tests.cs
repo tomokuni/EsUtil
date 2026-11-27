@@ -19,7 +19,7 @@ public class AnnotationEditorPanelTests
     {
         var editor = CreateEditor(out _, out var bubbleId);
 
-        editor.Layer.Session.Select(bubbleId);
+        editor.Layer.Session.SelectItem(bubbleId);
         editor.Layer.ExternalTextId = null;
         editor.Measure(new Size(400, 300));
         editor.Arrange(new Rect(0, 0, 400, 300));
@@ -36,12 +36,12 @@ public class AnnotationEditorPanelTests
     internal void 選択を解除するとレイヤーが本文を描く()
     {
         var editor = CreateEditor(out _, out var bubbleId);
-        editor.Layer.Session.Select(bubbleId);
+        editor.Layer.Session.SelectItem(bubbleId);
         editor.Measure(new Size(400, 300));
         editor.Arrange(new Rect(0, 0, 400, 300));
         editor.SyncTextEditor();
 
-        editor.Layer.Session.Select(null);
+        editor.Layer.Session.SelectItem(null);
         editor.Measure(new Size(400, 300));
         editor.Arrange(new Rect(0, 0, 400, 300));
         editor.SyncTextEditor();

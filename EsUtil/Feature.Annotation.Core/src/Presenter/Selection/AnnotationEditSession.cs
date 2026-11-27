@@ -72,7 +72,7 @@ public sealed class AnnotationEditSession
         {
             ArgumentNullException.ThrowIfNull(value);
 
-            EndTextEditing();
+            EndEdit();
             _document = value;
             _history.Clear();
             _selectedId = null;
@@ -84,7 +84,7 @@ public sealed class AnnotationEditSession
 
     /// <summary>選択中の注釈の識別子を取得する。</summary>
     /// <value>選択中の注釈の識別子。 解除は <see langword="null"/>。</value>
-    /// <remarks>選択の変更は <see cref="Select"/> で行う（本文の編集を終える等の副作用を setter へ持たせない）。</remarks>
+    /// <remarks>選択の変更は <see cref="SelectItem"/> で行う（本文の編集を終える等の副作用を setter へ持たせない）。</remarks>
     public string? SelectedId => _selectedId;
 
     /// <summary>選択中の注釈を取得する。</summary>
@@ -103,7 +103,7 @@ public sealed class AnnotationEditSession
     public bool CanRedo => _history.CanRedo;
 
     /// <summary>本文を編集中かどうかを取得する。</summary>
-    public bool IsEditingText => _editor.IsEditing;
+    public bool IsEditing => _editor.IsEditing;
 
     /// <summary>キャレットの位置（文字数）を取得する。</summary>
     public int CaretIndex => _editor.CaretIndex;
@@ -118,7 +118,7 @@ public sealed class AnnotationEditSession
     public int SelectionLength => _editor.SelectionLength;
 
     /// <summary>本文の文字を選んでいるかどうかを取得する。</summary>
-    public bool HasTextSelection => _editor.HasSelection;
+    public bool HasSelection => _editor.HasSelection;
 
     /// <summary>選択中の吹き出しの本文（書式を除く）を取得する。</summary>
     /// <value>本文。 吹き出しを選んでいない場合は空。</value>
@@ -146,7 +146,7 @@ public sealed class AnnotationEditSession
     /// <param name="start">開始位置（文字数。 範囲外は本文の範囲へ丸める）。</param>
     /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
     /// <remarks>選択の変更は通知する（書式バーの表示条件が変わるため）。</remarks>
-    public void SelectText(int start, int length)
+    public void Select(int start, int length)
     {
         _editor.Select(start, length);
         NotifyTextSelectionChanged();
@@ -168,14 +168,14 @@ public sealed class AnnotationEditSession
     /// <b>別の注釈を選んだら本文の編集を終える</b>: 編集していた本文を見失わないようにする。
     /// 同じ注釈を選び直した場合は何もしない（選択のたびに編集状態を捨てない）。
     /// </remarks>
-    public void Select(string? id)
+    public void SelectItem(string? id)
     {
         if (string.Equals(_selectedId, id, StringComparison.Ordinal))
         {
             return;
         }
 
-        EndTextEditing();
+        EndEdit();
         _selectedId = id;
         ResetEditor();
         _lastTextSelection = default;
@@ -203,7 +203,7 @@ public sealed class AnnotationEditSession
         var frame = AnnotationGeometry.CreateFrame(bounds, DraftDefaults.FrameAppearance, ImageSize);
         (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Frame, frame.Id, frame.Bounds);
         ApplyChange(document => document.Add(frame));
-        Select(frame.Id);
+        SelectItem(frame.Id);
         return frame.Id;
     }
 
@@ -222,7 +222,7 @@ public sealed class AnnotationEditSession
             bounds, RichText.Create(TextInput.Normalize(text), defaults.TextStyle), defaults, ImageSize);
         (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id, bubble.Bounds);
         ApplyChange(document => document.Add(bubble));
-        Select(bubble.Id);
+        SelectItem(bubble.Id);
         return bubble.Id;
     }
 
@@ -242,14 +242,14 @@ public sealed class AnnotationEditSession
 
         var kind = removed is FrameAnnotation ? AnnotationKind.Frame : AnnotationKind.Bubble;
         var text = (removed as BubbleAnnotation)?.Text.PlainText ?? string.Empty;
-        EndTextEditing();
+        EndEdit();
         if (!ApplyChange(document => document.Remove(id)))
         {
             return false;
         }
 
         (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationRemoved(kind, id, removed.Bounds, text);
-        Select(null);
+        SelectItem(null);
         return true;
     }
 
@@ -287,7 +287,7 @@ public sealed class AnnotationEditSession
     /// <param name="style">適用する書式。</param>
     /// <returns>既存の文字へ適用した場合は <see langword="true"/>。 以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が <see langword="null"/> の場合。</exception>
-    public bool ApplyTextStyle(TextStyle style)
+    public bool ApplyStyle(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
@@ -303,7 +303,7 @@ public sealed class AnnotationEditSession
     /// <param name="style">適用する書式。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が <see langword="null"/> の場合。</exception>
-    public bool ApplyTextStyle(int start, int length, TextStyle style)
+    public bool ApplyStyle(int start, int length, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
@@ -315,7 +315,7 @@ public sealed class AnnotationEditSession
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（範囲には 1 度だけ適用する）。</param>
     /// <returns>既存の文字へ適用した場合は <see langword="true"/>。 以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が <see langword="null"/> の場合。</exception>
-    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
+    public bool TransformStyle(Func<TextStyle, TextStyle> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
 
@@ -330,7 +330,7 @@ public sealed class AnnotationEditSession
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が <see langword="null"/> の場合。</exception>
-    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
+    public bool TransformStyle(int start, int length, Func<TextStyle, TextStyle> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
 
@@ -476,7 +476,7 @@ public sealed class AnnotationEditSession
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
     /// <returns>編集を始めた場合は <see langword="true"/>。 吹き出しを選んでいない場合は <see langword="false"/>。</returns>
-    public bool BeginTextEditing()
+    public bool BeginEdit()
     {
         if (_document.Find(_selectedId) is not BubbleAnnotation)
         {
@@ -495,7 +495,7 @@ public sealed class AnnotationEditSession
     }
 
     /// <summary>本文の編集を終える（内容は既に文書へ入っている）。</summary>
-    public void EndTextEditing()
+    public void EndEdit()
     {
         if (_editor.EndEdit() == TextEditChange.None)
         {
@@ -631,7 +631,7 @@ public sealed class AnnotationEditSession
         SyncEditorText();
         if (_selectedId is not null && _document.Find(_selectedId) is null)
         {
-            EndTextEditing();
+            EndEdit();
             _selectedId = null;
             ResetEditor();
             Notify(AnnotationEditChange.Selection);

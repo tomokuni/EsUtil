@@ -18,7 +18,7 @@ public class StyledTextControlTests
     {
         var editor = CreateEditor("あいう");
 
-        editor.BeginEditing();
+        editor.BeginEdit();
 
         Assert.True(editor.IsEditing);
         Assert.Equal(3, editor.CaretIndex);
@@ -32,7 +32,7 @@ public class StyledTextControlTests
         var editor = CreateEditor("あいう");
         var changed = 0;
         editor.RichTextChanged += (_, _) => changed++;
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(1, 0);
 
         var updated = editor.ReplaceSelection("X");
@@ -48,7 +48,7 @@ public class StyledTextControlTests
     internal void DeleteAtCaret_絵文字を1クラスタとして削除する()
     {
         var editor = CreateEditor("a😀b");
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(3, 0);
 
         editor.DeleteAtCaret(forward: false);
@@ -62,16 +62,16 @@ public class StyledTextControlTests
     {
         var editor = CreateEditor("あいう");
         var bold = TextDefaults.DefaultStyle with { IsBold = true };
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(1, 1);
 
-        Assert.True(editor.ApplyTextStyle(bold));
+        Assert.True(editor.ApplyStyle(bold));
         Assert.True(editor.RichTextValue.StyleAt(1).IsBold);
         Assert.False(editor.RichTextValue.StyleAt(0).IsBold);
 
         var italic = TextDefaults.DefaultStyle with { IsItalic = true };
         editor.Select(0, 0);
-        Assert.False(editor.ApplyTextStyle(italic));
+        Assert.False(editor.ApplyStyle(italic));
         Assert.Equal(italic, editor.SelectedTextStyle);
     }
 
@@ -80,7 +80,7 @@ public class StyledTextControlTests
     internal void MoveCaretByCluster_クラスタの境界へ移る()
     {
         var editor = CreateEditor("a😀b");
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(3, 0);
 
         editor.MoveCaretByCluster(-1, extend: false);
@@ -95,7 +95,7 @@ public class StyledTextControlTests
     internal void MoveCaretByCluster_選択は端へ畳まれる()
     {
         var editor = CreateEditor("あいうえお");
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(1, 3);
 
         editor.MoveCaretByCluster(-1, extend: false);
@@ -109,7 +109,7 @@ public class StyledTextControlTests
     internal void Text_差し替えでキャレットが範囲へ収まる()
     {
         var editor = CreateEditor("あいうえお");
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(5, 0);
 
         editor.RichTextValue = RichText.Create("あ", TextDefaults.DefaultStyle);
@@ -125,7 +125,7 @@ public class StyledTextControlTests
         var editor = CreateEditor("あいうえお");
         var bold = TextDefaults.DefaultStyle with { IsBold = true };
 
-        Assert.True(editor.ApplyTextStyle(1, 2, bold));
+        Assert.True(editor.ApplyStyle(1, 2, bold));
         Assert.False(editor.RichTextValue.StyleAt(0).IsBold);
         Assert.True(editor.RichTextValue.StyleAt(1).IsBold);
         Assert.True(editor.RichTextValue.StyleAt(2).IsBold);
@@ -137,7 +137,7 @@ public class StyledTextControlTests
     internal void ShouldShowFormatBar_1文字以上を選んだときだけ表示する()
     {
         var editor = CreateEditor("あいう");
-        editor.BeginEditing();
+        editor.BeginEdit();
 
         Assert.False(editor.ShouldShowFormatBar);
 
@@ -156,7 +156,7 @@ public class StyledTextControlTests
     internal void ShouldShowFormatBar_項目をすべて出さない場合は表示しない()
     {
         var editor = CreateEditor("あいう");
-        editor.BeginEditing();
+        editor.BeginEdit();
         editor.Select(0, 1);
 
         Assert.True(editor.ShouldShowFormatBar);
@@ -193,7 +193,7 @@ public class StyledTextControlTests
             MeasureText = FixedTextMetrics.Measure,
         };
 
-        editor.BeginEditing();
+        editor.BeginEdit();
 
         Assert.Same(shared, editor.Editor);
         Assert.Equal("共有", editor.RichTextValue.PlainText);

@@ -1,7 +1,5 @@
-using Avalonia;
+using EsUtil.Platform.Core.Imaging;
 using Avalonia.Headless.XUnit;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -19,8 +17,7 @@ public class ThumbnailLogMessageTests
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。</returns>
-    private static WriteableBitmap CreateBitmap(int width, int height)
-        => new(new PixelSize(width, height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
+    private static EsReadOnlyBitmap CreateBitmap(int width, int height) => EsReadOnlyBitmap.Create(width, height);
 
     /// <summary>既定の接頭辞が規約の値であることを検証する。</summary>
     [Fact]

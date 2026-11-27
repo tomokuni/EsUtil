@@ -336,7 +336,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     /// <param name="e">キーの引数。</param>
     private void OnBarKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter || e.Source is not Visual source || !_context.HasTextSelection)
+        if (e.Key != Key.Enter || e.Source is not Visual source || !_context.HasSelection)
         {
             return;
         }
@@ -419,7 +419,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     }
 
     /// <summary>選択中の範囲へ書式を適用し、表示を更新する。</summary>
-    /// <param name="change">書式を新しい値へ変える処理（変えない属性は <c>TransformTextStyle</c> が保つ）。</param>
+    /// <param name="change">書式を新しい値へ変える処理（変えない属性は <c>TransformStyle</c> が保つ）。</param>
     /// <param name="restoreFocus">適用の後に本文へフォーカスを戻すか（入力欄からの適用では <see langword="false"/>）。</param>
     /// <remarks>
     /// <b>選択が無いときは以降の入力へ回す</b>（判定はレイヤーが単一所有するので、ここでは分けない）。<br/>
@@ -429,7 +429,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     /// </remarks>
     private void Apply(Func<TextStyle, TextStyle> change, bool restoreFocus = true)
     {
-        _context.TransformTextStyle(change);
+        _context.TransformStyle(change);
         Refresh();
 
         if (restoreFocus)

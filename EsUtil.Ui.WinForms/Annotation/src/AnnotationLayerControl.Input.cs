@@ -65,7 +65,7 @@ public sealed partial class AnnotationLayerControl
         // **本文を編集中は破線だけを描く**: ハンドルは動かせないため出さない。 代わりに「どの注釈を
         // 編集中か」を破線で示す（規則は提示層の AnnotationEditingOutline が単一所有する）。
         // 編集中はマーキーの選択を解除している（枠を出さない）ため、矩形は文書と表示倍率から求める。
-        if (IsEditingText && Selected is { } editingItem)
+        if (IsEditing && Selected is { } editingItem)
         {
             var (editScale, editOffset) = ResolveImageTransform();
             DrawEditingOutline(
@@ -176,7 +176,7 @@ public sealed partial class AnnotationLayerControl
         _lastPointerSource = source;
 
         // 本文の編集中は、本文の外側の押下で編集を終える（内側の押下は本文コントロールが受ける）
-        if (IsEditingText)
+        if (IsEditing)
         {
             if (Selected is BubbleAnnotation editingBubble
                 && editingBubble.Bounds.Contains(source)
@@ -186,7 +186,7 @@ public sealed partial class AnnotationLayerControl
                 return;
             }
 
-            EndTextEditing();
+            EndEdit();
         }
 
         // **しっぽ → ハンドル → 本体の優先順は 1 か所で決める**（ポインターの形と同じ判定を使う）
@@ -208,7 +208,7 @@ public sealed partial class AnnotationLayerControl
 
         if (AnnotationHitTest.HitTest(_session.Document, source) is not { } hit)
         {
-            _session.Select(null);
+            _session.SelectItem(null);
 
             // 注釈の無い場所はプレビューの操作（パン・ダブルクリック）へ渡す
             if (isDoubleClick)
@@ -222,11 +222,11 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        _session.Select(hit.Id);
+        _session.SelectItem(hit.Id);
         if (isDoubleClick && hit is BubbleAnnotation)
         {
             Capture = true;
-            BeginTextEditing();
+            BeginEdit();
             return;
         }
 
@@ -286,7 +286,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         // 注釈の上に無い間は、プレビューのホバー表示（座標・自動切り出しの強調）へ位置を渡す
-        if (!HitTestAt(new Point(e.X, e.Y)))
+        if (!IsOverAnnotation(new Point(e.X, e.Y)))
         {
             RaisePreviewGesture(AnnotationPreviewGesture.Hover, position, 1, 0);
         }
@@ -358,7 +358,7 @@ public sealed partial class AnnotationLayerControl
         base.OnKeyDown(e);
 
         // 本文の編集中は、キー入力を本文コントロールが受ける（Delete で注釈を消さない）
-        if (IsEditingText)
+        if (IsEditing)
         {
             return;
         }
@@ -383,7 +383,7 @@ public sealed partial class AnnotationLayerControl
 
         if (e.KeyCode == Keys.Enter && Selected is BubbleAnnotation)
         {
-            BeginTextEditing();
+            BeginEdit();
             e.Handled = true;
             return;
         }
@@ -420,7 +420,7 @@ public sealed partial class AnnotationLayerControl
         // 追加できるのは画像の内側だけである（規則はコアが単一所有する）
         if (AnnotationHitTest.HitTest(_session.Document, source) is not { } hit)
         {
-            _session.Select(null);
+            _session.SelectItem(null);
             if (AnnotationGeometry.Contains(source, _session.Document.ImageSize))
             {
                 RaiseAddMenuRequested(position.X, position.Y);
@@ -429,7 +429,7 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        _session.Select(hit.Id);
+        _session.SelectItem(hit.Id);
         _styleEditorX = position.X;
         _styleEditorY = position.Y;
 
@@ -478,7 +478,7 @@ public sealed partial class AnnotationLayerControl
         // 外へ出たら既定の形へ戻す（戻さないと移動の合図が残る）
         Cursor = Cursors.Default;
 
-        if (!_isPreviewDragging && !IsEditingText)
+        if (!_isPreviewDragging && !IsEditing)
         {
             RaisePreviewGesture(AnnotationPreviewGesture.Leave, default, 1, 0);
         }

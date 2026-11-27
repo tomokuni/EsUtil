@@ -92,7 +92,7 @@ foreach (var file in files)
     list.Add(placeholder, Path.GetFileName(file), toolTip: file, tag: file);
 }
 
-// 生成が終わった画像は添字で差し替える（渡した画像の所有権はコントロールへ移る）
+// 生成が終わった画像は添字で差し替える（所有権は移らない）
 list.SetImage(index, bitmap);
 ```
 

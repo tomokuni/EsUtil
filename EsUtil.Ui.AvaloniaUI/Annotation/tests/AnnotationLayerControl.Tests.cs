@@ -153,8 +153,8 @@ public class AnnotationLayerControlTests
         var layer = CreateLayer(200, 120);
         layer.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
 
-        layer.SelectText(1, 2);
-        Assert.True(layer.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
+        layer.Select(1, 2);
+        Assert.True(layer.ApplyStyle(TextDefaults.DefaultStyle with { IsBold = true }));
 
         var text = Assert.IsType<BubbleAnnotation>(layer.Selected).Text;
         Assert.False(text.StyleAt(0).IsBold);

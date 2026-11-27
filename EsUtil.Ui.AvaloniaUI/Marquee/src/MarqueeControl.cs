@@ -786,14 +786,14 @@ public sealed partial class MarqueeControl : Panel
 
     /// <summary>通知を選択矩形のイベント引数へ変換する。</summary>
     /// <param name="notice">通知。</param>
-    /// <returns>選択矩形（DIP）とスナップショットを含むイベント引数。</returns>
+    /// <returns>選択矩形（対象座標）とスナップショットを含むイベント引数。</returns>
     private static SelectionRectEventArgs ToRectArgs(MarqueeNotice notice) => ToRectArgs(notice.Snapshot);
 
     /// <summary>スナップショットを選択矩形のイベント引数へ変換する（コアの通知を経由しない通知用）。</summary>
     /// <param name="snapshot">通知時点の状態スナップショット。</param>
-    /// <returns>選択矩形（DIP）とスナップショットを含むイベント引数。</returns>
+    /// <returns>選択矩形（対象座標）とスナップショットを含むイベント引数。</returns>
     private static SelectionRectEventArgs ToRectArgs(MarqueeSnapshot snapshot)
-        => new(snapshot.SelectionSourceRect.ToAvaloniaRect(), snapshot);
+        => new(snapshot.SelectionSourceRect, snapshot);
 
     /// <summary>カーソル形状をコアが示す種別に応じて更新する。</summary>
     /// <param name="kind">カーソル形状の種別（コア提供）。</param>

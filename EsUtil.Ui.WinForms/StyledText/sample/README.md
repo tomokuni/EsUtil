@@ -102,9 +102,9 @@ var editor = new StyledTextControl
 };
 
 editor.RichTextChanged += (_, _) => Save(editor.RichTextValue);
-editor.BeginEditing();
+editor.BeginEdit();
 editor.Select(2, 4);
-editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
+editor.ApplyStyle(TextDefaults.DefaultStyle with { IsBold = true });
 ```
 
 メンバーの一覧は [`../docs/SPEC_API.md`](../docs/SPEC_API.md) を参照してください。

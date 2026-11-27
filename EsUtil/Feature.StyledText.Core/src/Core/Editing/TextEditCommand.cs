@@ -5,7 +5,7 @@ namespace EsUtil.Feature.StyledText.Core.Editing;
 /// <b>キーの割り当てと操作を分ける</b>: どのキーがどの操作かを <see cref="TextEditKeyMap"/> が単一所有し、
 /// 操作の実行は UI（と編集セッション）が行う。<br/>
 /// <b>クリップボードと終了は UI が実行する</b>: <see cref="Copy"/> / <see cref="Cut"/> / <see cref="Paste"/> /
-/// <see cref="EndEditing"/> は UI の仕組み（クリップボード・フォーカス）を要するため、本列挙型は要求だけを表す。
+/// <see cref="EndEdit"/> は UI の仕組み（クリップボード・フォーカス）を要するため、本列挙型は要求だけを表す。
 /// </remarks>
 public enum TextEditCommand
 {
@@ -25,7 +25,7 @@ public enum TextEditCommand
     Paste,
 
     /// <summary>編集を終える。</summary>
-    EndEditing,
+    EndEdit,
 
     /// <summary>改行を挿入する。</summary>
     InsertLineBreak,

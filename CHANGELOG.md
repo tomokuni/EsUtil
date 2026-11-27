@@ -9,14 +9,14 @@
 
 ### 破壊的な変更
 
-- **注釈の外観・しっぽの変更を `TransformSelectedAppearance` / `TransformSelectedTail` に改名しました**（`AnnotationEditSession` と 4 つの UI 版の `AnnotationLayerControl`）。 関数を受け取って新しい値を返す操作は `TransformTextStyle` と同じ語に揃えます（同じ役割に同じ名前を使う）。
+- **注釈の外観・しっぽの変更を `TransformSelectedAppearance` / `TransformSelectedTail` に改名しました**（`AnnotationEditSession` と 4 つの UI 版の `AnnotationLayerControl`）。 関数を受け取って新しい値を返す操作は `TransformStyle` と同じ語に揃えます（同じ役割に同じ名前を使う）。
 - **`AnnotationLayerControl.SetPreviewImageRect(rect)` を削除し、`PreviewImageRect` を取得または設定できるプロパティにしました**（4 つの UI 版）。 同じ値を取得するプロパティと設定するメソッドを並べないためです。
 - **AvaloniaUI の `AnnotationLayerControl.Source` を `EsReadOnlyBitmap?` にしました**（従来は `IImage?`）。 拡大元・切り出し元の画像を 4 つの UI 版で同じ契約にするためです（`EsUtil/README.md` §5）。 表示境界の画像しか持たないホストは、コアの画像へ変換してから設定します。
 - **書式付き文字列の編集操作をログへ記録するようにしました**（`TextLogMessage`。 4 つの UI 版の `StyledTextControl` に `Log` / `LogPrefix` を追加）。 定義はコアが単一所有し、接頭辞は `[StyledText]` です。 本文は先頭 100 文字へ切り詰めて記録します。
 - **`PasteAsync` が貼り付けた文字列を返すようにしました**（`Task<string?>`。 貼り付ける文字列が無い場合は `null`）。 呼び出し側の `_ = PasteAsync()` はそのまま使えます。
 - **WinUI 3 の `AnnotationLayerControl.MeasureText` を削除しました**（本文の実寸は描画に使うテキスト エンジンが決めるため、ホストが差し替える入口を置きません）。
 - **`StyledTextControl.EditState` を `Editor` に置き換えました**（4 つの UI 版）。 状態だけでなく本文も含めて 1 つの `TextEditor` を共有するためです（別の実体を持つと本文とキャレットが食い違います）。 状態だけを差し替えていたホストは `Editor` へ `TextEditor` を渡します。
-- **`AnnotationEditSession.TextEditState` を `TextEditor` に置き換え、本文の操作 API を削除しました**（`SelectText` / `SelectAllText` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` / `DeleteAtCaret` / `ReplaceSelection` / `ReplaceRange` / `SelectedText`）。 本文の操作は `TextEditor` が単一所有し、セッションは選択中の本文を揃えて文書へ書き戻すだけにしました（操作の規則を 2 か所に持たない）。
+- **`AnnotationEditSession.TextEditState` を `TextEditor` に置き換え、本文の操作 API を削除しました**（`Select` / `SelectAllText` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` / `DeleteAtCaret` / `ReplaceSelection` / `ReplaceRange` / `SelectedText`）。 本文の操作は `TextEditor` が単一所有し、セッションは選択中の本文を揃えて文書へ書き戻すだけにしました（操作の規則を 2 か所に持たない）。
 - **公開 API の名前を .NET の慣例へ揃えました**（同じ役割に同じ名前を使い、メソッドは動詞で始める）。
   - `TextEditor.SelectedText()` → `GetSelectedText()`（4 つの UI 版の `StyledTextControl` も同じ）。
   - `TextEditState.Remember(style)` → `SetTypingStyle(style)`。
@@ -42,9 +42,21 @@
 - **`AnnotationLogMessage.LogOperationError` を公開しました**（UI 層が公開操作の例外を Error で記録して再スローできるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
 - **書式バーの表示可否を提示層へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility`）。 **表示可否はコアに置かない**規則（`EsUtil/README.md` §3）に合わせるためです。 次の公開 API を削除しました: `TextEditor.ShowFormatBarWhileEditing` / `TextEditor.ShouldShowFormatBar` / `TextEditState.ShouldShowFormatBar(bool)` / `TextEditState.FormatBarMinimumSelectionLength`。 UI コントロール（`StyledTextControl`）の `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` はそのまま使えます（条件は本判定が単一所有する）。
 - **本文の選択と書式の公開面を .NET の慣例へ揃えました**（値の設定で別の操作を起こさない。 `EsUtil/README.md` §9）。
-  - `AnnotationEditSession.SelectedTextStyle` / 4 つの UI の `AnnotationLayerControl.SelectedTextStyle` の setter を削除しました（書式は `ApplyTextStyle(style)` で適用する）。
-  - `AnnotationEditSession.TextSelectionRange` / 4 つの UI の `TextSelectionRange` の setter を削除し、`SelectText(start, length)` を追加しました（選択は意図を表すメソッドで指定する）。
-- **`AddFrameAt(EsPoint)` / `AddBubbleAt(EsPoint)` を削除しました**（AvaloniaUI は元画像ピクセル、MewUI は DIP として同じ引数を受け取っており、UI を移すと座標の意味が黙って変わるため）。 4 つの UI とも `AddFrameAt(Point dip)` / `AddBubbleAt(Point dip)`（ローカル DIP）だけを持ちます。
+  - `AnnotationEditSession.SelectedTextStyle` / 4 つの UI の `AnnotationLayerControl.SelectedTextStyle` の setter を削除しました（書式は `ApplyStyle(style)` で適用する）。
+  - `AnnotationEditSession.TextSelectionRange` / 4 つの UI の `TextSelectionRange` の setter を削除し、`Select(start, length)` を追加しました（選択は意図を表すメソッドで指定する）。
+- **`AddFrameAt` / `AddBubbleAt` / `HitTestAt` の引数を 4 つの UI 版とも `EsPoint`（ローカル DIP）にしました**（フレームワークの `Point` を公開 API へ出さない。 UI を替えても同じコードで呼べ、座標の意味も 1 つに定まる）。 呼び出し側はフレームワークの点を `new EsPoint(x, y)` で渡します。
+- **同じ役割のメンバー名を 4 つの UI 版で揃えました**（`EsUtil/Feature.*.Core` と各 UI の公開 API。 同じ処理に別名があると、UI を替えたときに読み替えが要る）。
+  - 本文の編集開始・終了: `BeginEditing` / `EndEditing`・`BeginTextEditing` / `EndTextEditing` → **`BeginEdit` / `EndEdit`**。
+  - 本文の編集中の判定: `IsEditingText` → **`IsEditing`**。
+  - 本文の選択の有無: `HasTextSelection` → **`HasSelection`**。
+  - 本文の選択: `SelectText(start, length)` → **`Select(start, length)`**。
+  - 書式の適用・変換: `ApplyTextStyle` / `TransformTextStyle` → **`ApplyStyle` / `TransformStyle`**。
+  - 注釈の選択: `AnnotationEditSession.Select(id)` → **`SelectItem(id)`**（本文の `Select(start, length)` と同じ名前で引数の意味が違うため）。
+- **`SelectionRectEventArgs.Rect` を AvaloniaUI でも `EsRect`（対象座標）にしました**（他の 3 版と同じ型にする。 `Rect` のアダプタ変換は不要になり、区間の流儀も渡る）。
+- **`ThumbnailControl.Add` / `SetImage` の画像を 4 つの UI 版とも `EsReadOnlyBitmap` にしました**（AvaloniaUI は `IImage`、WinForms は `Bitmap` を受け取っていた）。 表示境界の画像への変換は Interop（`EsBitmapAdapter` / `EsBitmapDrawingInterop`）が行い、ホストは変換を書きません。 WinForms は渡した画像の所有権を取りません（表示用の複製をコントロールが持ちます）。
+- **`AnnotationEditorControls` を `internal` にしました**（AvaloniaUI / MewUI。 4 つの UI 版で公開面を揃える。 WinForms / WinUI 3 と同じ扱い）。 `MewUI` の `AnnotationStylePanel` も `internal` にしました。
+- **MewUI の `ThumbnailControl.Clear()` を削除しました**（基底の `Panel.Clear()` を隠していた。 一覧を空にする API は `ClearItems()` に 1 本化）。
+- **ログの切り詰めを `EsUtil.Platform.Core` の `LogText.ToPreview` に集約しました**（本文の切り詰めが Annotation と StyledText に同じ実装で 2 つあった）。
 - **WinForms の `ThumbnailControl` の公開面を他の UI 版へ揃えました**。 `ItemBounds(int)` → `SlotBounds(int)`、`RefreshLayout()` → `Refresh()`（基底の `Control.Refresh` を隠し、配置の解決も行う）。 `Presentation` を取得として公開し、`Options` / `Appearance` は提示層の実体が保持します（設定の写しを UI が持たない）。
 - **`ThumbnailLayoutResult.Slot` / `Image` / `Label` を `GetSlot` / `GetImageRect` / `GetLabelRect` に改名しました**（取得は動詞で始める。 `Image` / `Label` は同じ型のプロパティ名と紛らわしかった）。
 - **`ColumnPacker.GetLastColumnSegments()` の要素名を `StartIdx` / `EndIdx` から `StartIndex` / `EndIndex` に改名しました**（略語を使わない）。
@@ -56,7 +68,7 @@
 - **AvaloniaUI の `AnnotationLayerControl.RenderComposedImage()` の戻り値を `EsBitmap` にしました**（従来は `RenderTargetBitmap`。 4 つの UI 版で同じ型を返し、保存形式の判定とエンコードは `EsBitmap.Save` が単一所有する）。 ホストは画素を写さずにそのまま保存できます。
 - **AvaloniaUI だけが持っていた書式バーの `PaletteColumns` / `ColorWidth` を削除しました**（`AnnotationEditorPanel` と `StyledTextFormatBar`。 他の UI 版には無く、利用箇所も無かったため）。
 - **倍率の名前へ向きを含めました**（4 つの UI 版の `StyledTextControl`）。 `RenderScale` → `SourceToClientScaling`（元画像ピクセル → DIP の倍率であることを名前で示す。 名前の規則は [`命名規約.md`](.github/命名規約.md) が単一所有する）。 注釈レイヤーの内部値 `ViewScale` も同じ名前に揃えました。
-- **書式バーが書式を読み書きする相手のメソッド名を役割が分かる名前にしました**（`ITextFormatBarContext`。 4 つの UI 版）。 `Transform` → `TransformTextStyle`、`Apply` → `ApplyTextStyle`（本文コントロールの同じ役割のメソッドと同じ名前にする）。
+- **書式バーが書式を読み書きする相手のメソッド名を役割が分かる名前にしました**（`ITextFormatBarContext`。 4 つの UI 版）。 `Transform` → `TransformStyle`、`Apply` → `ApplyStyle`（本文コントロールの同じ役割のメソッドと同じ名前にする）。
 - **`AnnotationEditorPanel.TextFormat` を `ColorTextFormat` に改名しました**（4 つの UI 版）。 本文の書式（太字・色など）と紛らわしく、同じ役割の `AnnotationLayerControl.ColorTextFormat` と名前が食い違っていたためです。
 - **`AnnotationEditSession.SelectedId` の setter を削除しました**（選択は `Select(id)` で行う。 §9「仕様の状態はプロパティに副作用を持たせない」に合わせる。 4 つの UI の `AnnotationLayerControl.SelectedId` はバインド可能なプロパティとして残る）。
 
@@ -93,7 +105,7 @@
   - **`AnnotationTextEditor` を `AnnotationEditorPanel` へ改名しました**（本文の編集コントロールと名前が紛らわしいため。 役割は変わりません）。
   - **キャレットと選択範囲の見た目を `EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` へ移しました**（4 つの UI 版で同じ見た目にするため）。
 - **文字の書式と行の計算を `EsUtil.Feature.StyledText.Core` として分離しました**。 書式付きの文字列（`RichText` / `TextRun` / `TextStyle`）・折り返しと行の配置（`TextLayout`）・行と文字位置の対応（`TextLineIndex` / `TextLineLayout`）・書記素クラスタの境界（`TextCursor`）・入力の挿入（`TextStyleEdit`）を UI にも特定の機能にも依存しない層へ移しました。 名前空間は `EsUtil.Feature.StyledText` です。 注釈の本文はこの層を使うため、**注釈の機能から文字の型（`AnnotationTextStyle` / `AnnotationTextCursor` / `AnnotationTextLayout` 等）は無くなりました**（同じ型が接頭辞なしで `EsUtil.Feature.StyledText` にあります）。 文字の実寸の計測だけは UI が渡します（描画エンジンによって字幅が違うため）。 折り返し・行の配置・削除の単位を 1 か所で決めるため、4 つの UI 版で同じ位置に折り返し、絵文字（サロゲート ペア）と結合文字を半分に割りません。
-- **注釈の編集状態の入口を `AnnotationEditSession` に集約しました**。 本文の編集状態は `EsUtil.Feature.StyledText.Core` の `TextEditState` へ移し、文書も注釈の識別子も知らない状態機械にしました（文書への書き戻しは編集セッションが担います）。 キーの割り当て（`Control` + B / I / U、`Alt` + `Shift` + 5 の取り消し線、`Escape` と `Control` + `Enter` の終了、矢印と `Shift` の選択の拡張など）も同層の `TextEditKeyMap` が単一所有し、4 つの UI 版は自分のキーの型を写すだけにしました（割り当てを UI ごとに書かないため、UI 版で操作が食い違いません）。 文字の書式の適用は 1 経路になり、文書を受け取る `AnnotationSelectionPresenter.ApplyTextStyle` / `ResolveTextStyle` は削除しました（書式は `AnnotationEditSession.ApplyTextStyle` / `TransformTextStyle` で変えます）。
+- **注釈の編集状態の入口を `AnnotationEditSession` に集約しました**。 本文の編集状態は `EsUtil.Feature.StyledText.Core` の `TextEditState` へ移し、文書も注釈の識別子も知らない状態機械にしました（文書への書き戻しは編集セッションが担います）。 キーの割り当て（`Control` + B / I / U、`Alt` + `Shift` + 5 の取り消し線、`Escape` と `Control` + `Enter` の終了、矢印と `Shift` の選択の拡張など）も同層の `TextEditKeyMap` が単一所有し、4 つの UI 版は自分のキーの型を写すだけにしました（割り当てを UI ごとに書かないため、UI 版で操作が食い違いません）。 文字の書式の適用は 1 経路になり、文書を受け取る `AnnotationSelectionPresenter.ApplyStyle` / `ResolveTextStyle` は削除しました（書式は `AnnotationEditSession.ApplyStyle` / `TransformStyle` で変えます）。
 - **注釈（枠線・吹き出し）のコントロールを追加しました**。 `EsUtil.Feature.Annotation.Core`（Core / Presenter）と 4 つの UI 版（`EsUtil.Ui.AvaloniaUI.Annotation` / `EsUtil.Ui.MewUI.Annotation` / `EsUtil.Ui.WinUI3.Annotation` / `EsUtil.Ui.WinForms.Annotation`）です。 注釈は画像へ焼き込まず `*.annotations.json` として保存でき、保存時に `*.annotated.*`（合成画像）を書き出せます。 選択枠とハンドルは Marquee の提示層を、色の選択は ColorSelector を再利用します。
   - **ファサード**: `AnnotationCore` が文書と注釈の生成・JSON の読み書き・ログを集約し、`AnnotationPresenter` を共有します。 公開面は `EsUtil.Feature.Annotation`（`src/` 直下）です。
   - **ログ**: `Log` / `LogPrefix` で出力先と接頭辞（既定 `[Annotation]`）を設定します。 ファサードの生成・注釈ファイルの読み書きと付随ファイルの削除（`Information`）・注釈の追加（`Debug`）を記録します。

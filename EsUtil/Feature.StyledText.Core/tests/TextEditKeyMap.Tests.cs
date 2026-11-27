@@ -65,7 +65,7 @@ public class TextEditKeyMapTests
     [InlineData(TextEditKey.Back, TextEditCommand.DeleteBackward)]
     [InlineData(TextEditKey.Delete, TextEditCommand.DeleteForward)]
     [InlineData(TextEditKey.Enter, TextEditCommand.InsertLineBreak)]
-    [InlineData(TextEditKey.Escape, TextEditCommand.EndEditing)]
+    [InlineData(TextEditKey.Escape, TextEditCommand.EndEdit)]
     internal void 削除と改行と終了は選択を広げない(TextEditKey key, TextEditCommand expected)
     {
         var request = TextEditKeyMap.Resolve(key, TextEditModifiers.Shift);
@@ -80,7 +80,7 @@ public class TextEditKeyMapTests
     {
         var request = TextEditKeyMap.Resolve(TextEditKey.Enter, TextEditModifiers.Control);
 
-        Assert.Equal(TextEditCommand.EndEditing, request.Command);
+        Assert.Equal(TextEditCommand.EndEdit, request.Command);
     }
 
     /// <summary>選択とクリップボードは Control と文字キーの組み合わせで解決することを検証する。</summary>

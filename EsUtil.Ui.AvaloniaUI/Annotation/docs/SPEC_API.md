@@ -4,7 +4,7 @@
 
 - [1. `AnnotationEditorPanel`（クラス）](#1-annotationeditorpanelクラス)
 - [2. `AnnotationLayerControl`（クラス）](#2-annotationlayercontrolクラス)
-- [3. `AnnotationEditorControls`（クラス）](#3-annotationeditorcontrolsクラス)
+- [3. `AnnotationEditorControls`（クラス）（内部）](#3-annotationeditorcontrolsクラス内部)
 - [4. 書式バー（`StyledTextFormatBar`）](#4-書式バーstyledtextformatbar)
 - [5. `AnnotationPalette`（静的クラス）](#5-annotationpalette静的クラス)
 
@@ -15,7 +15,7 @@
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
 | `Layer` | property | 内側の `AnnotationLayerControl`（画像・文書・選択・元に戻すはここから操作する） |
-| `IsEditingText` | property | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
+| `IsEditing` | property | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 | `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（表示中でも差し替えられ、作り直して出し直す） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
@@ -31,7 +31,7 @@
 - **書式バーは内側で出し入れします**（`Layer.EditingChanged` と `Layer.TextSelectionChanged` を購読し、**1 文字以上を選んでいる間だけ**出す）。 ホストがバーを置く必要はありません。
 - **配置**: レイヤーは与えられた領域いっぱい、書式バーは**本文に被さらない位置**（本文の上・下・左右の外側）へ出す。 バーの大きさは**中身に合わせる**（説明の行と「完了」は置かない）。
 - **書式バーと右クリックのフライアウトは枠なしのウィンドウへ載せます**: アプリのウィンドウの内側（画面の内側）へ収まる位置へ置きます（規則は `AnnotationPanelPlacement.ResolveAvailableArea` が単一所有する）。
-- **文字を選んでいない間は操作を無効にします**（適用先が決まらないため。 `Layer.HasTextSelection`）。
+- **文字を選んでいない間は操作を無効にします**（適用先が決まらないため。 `Layer.HasSelection`）。
 - 文書の変更・選択の変更（`Layer.TextSelectionChanged`）でバーの表示（現在の書式・装飾の押下状態・有効無効）と位置を追随させます。
 
 ## 2. `AnnotationLayerControl`（クラス）
@@ -44,7 +44,7 @@
 | `SourcePixelWidth` / `SourcePixelHeight` | property | 元画像の画素数（縦横比を保って中央へ表示する） |
 | `ShowImage` | property | 画像をレイヤーが描くか（`false` の場合は注釈だけを描く） |
 | `PreviewImageRect` / `ImageRectProvider` | property / method | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
-| `HitTestAt(point)` / `ClearSelection()` | method | 位置が注釈に当たるか / 選択の解除 |
+| `HitTestAt(EsPoint dip)` / `ClearSelection()` | method | 位置（ローカル DIP）が注釈に当たるか / 選択の解除 |
 | `Document` | property | 注釈の文書。 差し替えると選択を解除する |
 | `SelectedId` / `Selected` | property | 選択中の注釈（識別子・実体） |
 | `DraftDefaults` | property | 新規作成時の既定値（`AnnotationDraftDefaults`。 既存の注釈は変わらない） |
@@ -55,19 +55,19 @@
 | `LineHeightFactor` | property | 行間の倍率（既定 1.25） |
 | `HandleHitRadius` / `HandleSize` | property | ハンドルを掴む半径・見えている一辺の大きさ（DIP。 描画と当たり判定で同じ値を共有する） |
 | `TextSelectionRange` | property | 本文の書式を適用する範囲（開始位置・長さ。 長さ 0 は選択なし） |
-| `SelectText(start, length)` | method | 本文の選択範囲を指定する（ホストが本文の選択範囲を写す） |
+| `Select(start, length)` | method | 本文の選択範囲を指定する（ホストが本文の選択範囲を写す） |
 | `SelectedTextStyle` | property | 選択中の本文の書式（範囲の先頭の文字。 フライアウトの初期表示） |
 | `SelectedTextMatches(match)` | method | 選択範囲の**すべての文字**が条件を満たすか（書式バーの押下状態。 選択が無ければキャレットの位置で判定） |
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | method | 注釈を追加し、追加した注釈を選択する（戻り値は識別子） |
 | `DeleteSelected()` | method | 選択中の注釈を削除する |
 | `SetSelectedText(text)` | method | 選択中の吹き出しの本文を置き換える（**書式は文字位置で引き継ぐ**） |
-| `ApplyTextStyle(style)` / `ApplyTextStyle(start, length, style)` / `TransformTextStyle(transform)` / `TransformTextStyle(start, length, transform)` | method | 本文へ書式を適用する（`TextSelectionRange` の範囲、または指定した範囲。 **文字単位**。 長さ 0 は全体）。 `ApplyTextStyle` は**書式を丸ごと差し替える**、`TransformTextStyle` は**指定した属性だけを書く**（他の属性を保つ） |
+| `ApplyStyle(style)` / `ApplyStyle(start, length, style)` / `TransformStyle(transform)` / `TransformStyle(start, length, transform)` | method | 本文へ書式を適用する（`TextSelectionRange` の範囲、または指定した範囲。 **文字単位**。 長さ 0 は全体）。 `ApplyStyle` は**書式を丸ごと差し替える**、`TransformStyle` は**指定した属性だけを書く**（他の属性を保つ） |
 | `TransformSelectedAppearance(transform)` | method | 外観（枠線・内側・角丸）を差し替える |
 | `SetSelectedBodyPadding(padding)` / `TransformSelectedTail(transform)` | method | 吹き出しの本文の余白・しっぽ（幅・辺）を差し替える |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | method | 重なり順を変える |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | method / property | 元に戻す・やり直す（変更の単位は 1 操作。 ドラッグは押下から離すまでで 1 手。 選択は識別子で引き継ぐ） |
 | `ShowStyleEditor()` | method | 外観・書式・重なり順の編集フライアウトを表示する（右クリックと同じ） |
-| `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | method / property | 本文を**その場で編集**する（キャレット・選択範囲を本文のレイアウトのまま描く。 入力欄を重ねない） |
+| `BeginEdit()` / `EndEdit()` / `IsEditing` | method / property | 本文を**その場で編集**する（キャレット・選択範囲を本文のレイアウトのまま描く。 入力欄を重ねない） |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` | property | キャレットと選択範囲（文字数） |
 | `EditingChanged` | event | 本文の編集の開始・終了（書式バーの出し入れはパネルが行う） |
 | `TextSelectionChanged` | event | 本文の選択範囲（キャレット）の変更（書式バーの現在値を追随させる） |
@@ -95,7 +95,7 @@
 
 **注意**: 保存（注釈 JSON・合成画像）は行いません。 ホストが `AnnotationJson` と `RenderComposedImage()` で書き出します。
 
-## 3. `AnnotationEditorControls`（クラス）
+## 3. `AnnotationEditorControls`（クラス）（内部）
 
 注釈の編集 UI で使う行の部品です（右クリックのフライアウトとホストの設定ペインが共有する）。
 

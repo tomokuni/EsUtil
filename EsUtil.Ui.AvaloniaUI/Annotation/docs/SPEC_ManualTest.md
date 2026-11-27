@@ -34,13 +34,13 @@ API は `AnnotationEditorPanel` の `Layer`（`AnnotationLayerControl`）と `An
 | 1 | API: `layer.AddBubble(new EsRect(24, 24, 240, 160), "文字")` / GUI: 吹き出しを追加する | 本文が書式（色・太字・斜体・下線・取り消し線）どおりに描かれる |
 | 2 | GUI: 表示倍率を変える | 文字の位置と大きさが画像と一緒に拡大・縮小し、保存画像と同じ比率になる |
 | 3 | API: `layer.SelectedId = id` / GUI: 吹き出しを選ぶ | 本文の文字が動かない（選ぶ前と同じ位置に描かれる） |
-| 4 | API: `layer.ApplyTextStyle(style with { IsItalic = true })` / GUI: 斜体を設定する | 行の高さが斜体でない行と変わらない |
+| 4 | API: `layer.ApplyStyle(style with { IsItalic = true })` / GUI: 斜体を設定する | 行の高さが斜体でない行と変わらない |
 
 ### 1.2 本文の編集
 
 | # | 操作（API / GUI） | 期待結果 |
 | --- | --- | --- |
-| 5 | API: `layer.BeginTextEditing()` / GUI: 本文をクリックする、または Enter を押す | キャレットが表示され、点滅する（選択が無いため書式バーは出ない） |
+| 5 | API: `layer.BeginEdit()` / GUI: 本文をクリックする、または Enter を押す | キャレットが表示され、点滅する（選択が無いため書式バーは出ない） |
 | 6 | GUI: 文字を入力する | 入力した文字がその場に表示され、キャレットが進む |
 | 10 | GUI: 矢印キーでキャレットを動かす | キャレットが 1 文字ずつ進み、行をまたげる |
 | 11 | GUI: Shift + 矢印キー | 選択範囲が広がり、薄い青で表示される |
@@ -54,7 +54,7 @@ API は `AnnotationEditorPanel` の `Layer`（`AnnotationLayerControl`）と `An
 
 | # | 操作（API / GUI） | 期待結果 |
 | --- | --- | --- |
-| 17 | API: `layer.ApplyTextStyle(start, length, style)` / GUI: 文字を選ぶ（書式バーが出る）→ 書式バーの太字を押す | 選択した文字だけが太くなる |
+| 17 | API: `layer.ApplyStyle(start, length, style)` / GUI: 文字を選ぶ（書式バーが出る）→ 書式バーの太字を押す | 選択した文字だけが太くなる |
 | 18 | GUI: 選択を畳み（書式バーが閉じる）、Ctrl+B を押して文字を入力する | 入力する文字だけが太くなる（既存の文字は変わらない） |
 | 19 | GUI: Ctrl + B / Ctrl + I / Ctrl + U | 太字・斜体・下線が切り替わる |
 | 20 | GUI: Alt + Shift + 5 | 取り消し線が切り替わる |
@@ -74,7 +74,7 @@ API は `AnnotationEditorPanel` の `Layer`（`AnnotationLayerControl`）と `An
 
 | # | 操作（API / GUI） | 期待結果 |
 | --- | --- | --- |
-| 27 | API: `layer.EndTextEditing()` / GUI: 注釈の外をクリックする | 編集が終わり、変更が文書へ入る（元に戻すで戻せる） |
+| 27 | API: `layer.EndEdit()` / GUI: 注釈の外をクリックする | 編集が終わり、変更が文書へ入る（元に戻すで戻せる） |
 | 28 | API: `layer.Core.SaveForImage` と読み込み / GUI: 保存して開き直す | 編集した内容と書式が残る |
 | 29 | API: `layer.SelectedId = otherId` / GUI: 編集中に別の吹き出しを選ぶ | 前の本文の変更が確定し、新しい吹き出しの本文が表示される |
 
@@ -84,7 +84,7 @@ API は `AnnotationEditorPanel` の `Layer`（`AnnotationLayerControl`）と `An
 | --- | --- | --- |
 | 30 | API: `layer.AddFrame(new EsRect(60, 60, 340, 220))` / GUI: 追加メニューから枠線を選ぶ | 枠線が追加され、その枠線が選択される |
 | 31 | API: `layer.AddBubble(new EsRect(520, 340, 380, 170), "文字")` / GUI: 追加メニューから吹き出しを選ぶ | 吹き出しと本文が表示され、本文の上で編集を始められる |
-| 32 | API: `layer.AddFrameAt(point)` / GUI: 何もない場所を右クリックして追加する | 押した位置を左上とする既定の大きさで追加される |
+| 32 | API: `layer.AddFrameAt(EsPoint dip)` / GUI: 何もない場所を右クリックして追加する | 押した位置を左上とする既定の大きさで追加される |
 | 33 | GUI: 注釈の本体を押す | 選択され、選択枠と 8 方向のハンドルが出る |
 | 34 | GUI: 注釈の無い場所を押してドラッグする | 選択が解除され、操作がプレビュー（パン）へ渡る（`PreviewGestureRequested`） |
 | 35 | GUI: 注釈の無い場所を右クリックする | 注釈の追加メニューが出る（`AddMenuRequested`） |

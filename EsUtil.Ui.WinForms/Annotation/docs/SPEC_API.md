@@ -16,7 +16,7 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
 | `Layer` | `AnnotationLayerControl` | 画像・文書・選択を操作するレイヤー |
-| `IsEditingText` | `bool` | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
+| `IsEditing` | `bool` | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 | `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（表示中でも差し替えられ、作り直して出し直す） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
@@ -47,14 +47,14 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | `Core` | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（追加した識別子を返す） |
 | `DeleteSelected()` / `SetSelectedText(text)` | 削除と本文の置き換え |
-| `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・属性だけの変更 |
+| `ApplyStyle(...)` / `TransformStyle(...)` | 選択範囲の書式の差し替え・属性だけの変更 |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 選択範囲の書式（書式バーの現在値）・すべての文字が条件を満たすか |
 | `TransformSelectedAppearance(...)` / `TransformSelectedTail(...)` / `SetSelectedBodyPadding(...)` | 外観・しっぽ・本文の余白の変更 |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更 |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 元に戻す・やり直す（1 操作 = 1 手） |
-| `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文のその場編集の開始・終了（入力欄を重ねず、キャレットと選択範囲を描く） |
+| `BeginEdit()` / `EndEdit()` / `IsEditing` | 本文のその場編集の開始・終了（入力欄を重ねず、キャレットと選択範囲を描く） |
 | `SelectionStart` / `SelectionEnd` / `SelectionLength` / `TextSelectionRange` | 本文の選択範囲（文字数） |
-| `SelectText(start, length)` | 本文の選択範囲を指定する（ホストが本文の選択範囲を写す） |
+| `Select(start, length)` | 本文の選択範囲を指定する（ホストが本文の選択範囲を写す） |
 | `GetSelectedBodyRect()` / `GetSelectedBoundsRect()` | 選択中の本文・注釈の矩形（コアの `EsRect`・DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用。 生成できなければ `InvalidOperationException`） |
 | `InvalidateRender()` | 今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ） |

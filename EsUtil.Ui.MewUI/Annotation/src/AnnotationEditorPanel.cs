@@ -99,7 +99,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         // 編集の開始・終了でバーを出し入れする（本文の位置は編集のたびに変わりうる）
         _layer.EditingChanged += (_, _) =>
         {
-            if (_layer.IsEditingText)
+            if (_layer.IsEditing)
             {
                 // **バーは選択ができてから出す**: 編集中でも 1 文字以上を選ぶまでは出さない
                 UpdateFormatBarVisibility();
@@ -111,7 +111,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
                         DispatcherPriority.Input,
                         () =>
                         {
-                            if (_layer.IsEditingText)
+                            if (_layer.IsEditing)
                             {
                                 _textEditor.Focus();
                             }
@@ -138,7 +138,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             UpdateFormatBarVisibility();
 
             // 外観パネルは「選んでいる注釈」を編集するため、選択が変わったら閉じる
-            if (!_layer.IsEditingText)
+            if (!_layer.IsEditing)
             {
                 _stylePanel.Close();
             }
@@ -165,9 +165,9 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _textEditor.RichTextChanged += (_, _) => OnTextEditorChanged();
         _textEditor.EditingChanged += (_, _) =>
         {
-            if (_layer.IsEditingText && !_textEditor.IsEditing)
+            if (_layer.IsEditing && !_textEditor.IsEditing)
             {
-                _layer.Session.EndTextEditing();
+                _layer.Session.EndEdit();
             }
         };
 
@@ -246,7 +246,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     }
     /// <summary>本文を編集中かどうかを取得する。</summary>
     /// <value>編集中の場合は <see langword="true"/>。 書式バーは 1 文字以上を選んでいる間だけ出る。</value>
-    public bool IsEditingText => _layer.IsEditingText;
+    public bool IsEditing => _layer.IsEditing;
 
     /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
     /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
@@ -829,7 +829,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// </remarks>
     private void OnTextEditorChanged()
     {
-        if (!_layer.IsEditingText || _layer.Session.Selected is not BubbleAnnotation bubble)
+        if (!_layer.IsEditing || _layer.Session.Selected is not BubbleAnnotation bubble)
         {
             return;
         }
@@ -934,7 +934,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         bar.SetKeyHandler(_textEditor.TryHandleEditingKey);
         bar.SetFocusRequest(() =>
         {
-            if (_layer.IsEditingText)
+            if (_layer.IsEditing)
             {
                 _textEditor.Focus();
             }
@@ -951,16 +951,16 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         public TextStyle SelectedTextStyle => layer.Session.SelectedTextStyle;
 
         /// <inheritdoc/>
-        public bool HasTextSelection => layer.HasTextSelection;
+        public bool HasSelection => layer.HasSelection;
 
         /// <inheritdoc/>
         public bool SelectedTextMatches(Func<TextStyle, bool> match) => layer.Session.SelectedTextMatches(match);
 
         /// <inheritdoc/>
-        public bool TransformTextStyle(Func<TextStyle, TextStyle> transform) => layer.Session.TransformTextStyle(transform);
+        public bool TransformStyle(Func<TextStyle, TextStyle> transform) => layer.Session.TransformStyle(transform);
 
         /// <inheritdoc/>
-        public bool ApplyTextStyle(TextStyle style) => layer.Session.ApplyTextStyle(style);
+        public bool ApplyStyle(TextStyle style) => layer.Session.ApplyStyle(style);
     }
 
     /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
@@ -992,7 +992,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _textEditor.RefreshCaretBlink();
 
         // **編集中だけ入力を受ける**: 編集していない間はレイヤーが本文を描き、押下もレイヤーへ渡す
-        _textEditor.IsInputEnabled = _layer.IsEditingText;
+        _textEditor.IsInputEnabled = _layer.IsEditing;
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
         _layer.ExternalTextId = bubble.Id;

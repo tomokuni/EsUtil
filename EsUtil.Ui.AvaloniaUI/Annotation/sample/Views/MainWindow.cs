@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -127,7 +126,7 @@ public sealed class MainWindow : Window
                 SampleSettings.Buttons(
                     ("枠線を追加", () => AddFrame()),
                     ("吹き出しを追加", () => AddBubble()),
-                    ("本文を編集", () => layer.BeginTextEditing()),
+                    ("本文を編集", () => layer.BeginEdit()),
                     ("元に戻す", () => layer.Undo()),
                     ("やり直す", () => layer.Redo()),
                     ("最前面へ", () => layer.BringSelectedToFront()),
@@ -138,12 +137,12 @@ public sealed class MainWindow : Window
                     ("注釈を読み込む", () => LoadAnnotations()),
                     ("削除", () => layer.DeleteSelected())),
                 SampleSettings.Buttons(
-                    ("枠線を追加（位置指定）", () => layer.AddFrameAt(new Point(160, 160))),
-                    ("吹き出しを追加（位置指定）", () => layer.AddBubbleAt(new Point(260, 120)))),
+                    ("枠線を追加（位置指定）", () => layer.AddFrameAt(new EsPoint(160, 160))),
+                    ("吹き出しを追加（位置指定）", () => layer.AddBubbleAt(new EsPoint(260, 120)))),
                 SampleSettings.Buttons(
-                    ("選択の書式を太字に", () => layer.ApplyTextStyle(layer.SelectedTextStyle with { IsBold = true })),
-                    ("選択の太字を切替", () => layer.TransformTextStyle(static style => style with { IsBold = !style.IsBold })),
-                    ("本文の 0〜5 を選択", () => layer.SelectText(0, 5))),
+                    ("選択の書式を太字に", () => layer.ApplyStyle(layer.SelectedTextStyle with { IsBold = true })),
+                    ("選択の太字を切替", () => layer.TransformStyle(static style => style with { IsBold = !style.IsBold })),
+                    ("本文の 0〜5 を選択", () => layer.Select(0, 5))),
                 SampleSettings.Buttons(
                     ("本文の余白を 12 に", () => layer.SetSelectedBodyPadding(12)),
                     ("しっぽの幅を 30 に", () => layer.TransformSelectedTail(static tail => tail with { Width = 30 })),
@@ -240,7 +239,7 @@ public sealed class MainWindow : Window
 
         // 位置が注釈に当たるかを状態へ出す（当たり判定の公開 API）
         void ShowHitTest() =>
-            _status.Text = $"位置 (200, 200) は注釈に当たる: {layer.HitTestAt(new Point(200, 200))}";
+            _status.Text = $"位置 (200, 200) は注釈に当たる: {layer.HitTestAt(new EsPoint(200, 200))}";
 
         void SaveAnnotations()
         {

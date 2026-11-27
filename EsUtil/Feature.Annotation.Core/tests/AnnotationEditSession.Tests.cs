@@ -47,7 +47,7 @@ public sealed class AnnotationEditSessionTests
         Assert.Empty(session.Document.Items);
 
         Assert.True(session.Undo());
-        session.Select(id);
+        session.SelectItem(id);
         Assert.NotNull(session.Selected);
     }
 
@@ -70,7 +70,7 @@ public sealed class AnnotationEditSessionTests
     {
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 120, 80), "abcd");
-        Assert.True(session.BeginTextEditing());
+        Assert.True(session.BeginEdit());
 
         Assert.True(session.SetSelectedText("ab"));
         Assert.Equal("ab", session.SelectedPlainText);
@@ -88,13 +88,13 @@ public sealed class AnnotationEditSessionTests
         var first = session.AddBubble(new EsRect(10, 10, 120, 80), "abc");
         var second = session.AddFrame(new EsRect(150, 10, 40, 30));
 
-        session.Select(first);
-        Assert.True(session.BeginTextEditing());
-        Assert.True(session.IsEditingText);
+        session.SelectItem(first);
+        Assert.True(session.BeginEdit());
+        Assert.True(session.IsEditing);
 
-        session.Select(second);
+        session.SelectItem(second);
 
-        Assert.False(session.IsEditingText);
+        Assert.False(session.IsEditing);
         Assert.Equal(second, session.SelectedId);
     }
 
@@ -106,7 +106,7 @@ public sealed class AnnotationEditSessionTests
         session.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
         session.Editor.MoveCaret(2, extend: false);
 
-        Assert.False(session.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
+        Assert.False(session.ApplyStyle(TextDefaults.DefaultStyle with { IsBold = true }));
         Assert.False(Assert.IsType<BubbleAnnotation>(session.Selected).Text.StyleAt(2).IsBold);
 
         session.Editor.ReplaceSelection("X");
@@ -120,7 +120,7 @@ public sealed class AnnotationEditSessionTests
     {
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 200, 80), "a😀b");
-        Assert.True(session.BeginTextEditing());
+        Assert.True(session.BeginEdit());
 
         session.Editor.MoveCaret(0, extend: false);
         session.Editor.MoveCaret(session.CaretIndex + 1, extend: false);
@@ -141,12 +141,12 @@ public sealed class AnnotationEditSessionTests
         var session = CreateSession();
         session.AddFrame(new EsRect(10, 10, 40, 30));
         session.AddBubble(new EsRect(60, 10, 120, 80), "abc");
-        Assert.True(session.BeginTextEditing());
+        Assert.True(session.BeginEdit());
 
         Assert.True(session.Undo());
 
         Assert.Null(session.SelectedId);
-        Assert.False(session.IsEditingText);
+        Assert.False(session.IsEditing);
     }
 
     /// <summary>本文の編集と書式の適用は、操作の内容と値をログへ残す。</summary>
@@ -161,10 +161,10 @@ public sealed class AnnotationEditSessionTests
         var session = new AnnotationEditSession(new AnnotationDocument(400, 300, "shot.png"), () => logger);
         session.AddBubble(new EsRect(10, 10, 120, 80), "abcd");
 
-        Assert.True(session.BeginTextEditing());
+        Assert.True(session.BeginEdit());
         session.Editor.Select(0, 2);
         session.NotifyTextSelectionChanged();
-        session.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
+        session.ApplyStyle(TextDefaults.DefaultStyle with { IsBold = true });
         session.Editor.ReplaceSelection("X");
         Assert.True(session.CommitTextEdit());
 
@@ -218,7 +218,7 @@ public sealed class AnnotationEditSessionTests
     {
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 120, 80), "ab");
-        Assert.True(session.BeginTextEditing());
+        Assert.True(session.BeginEdit());
         session.Editor.MoveCaret(2, extend: false);
 
         session.Editor.ReplaceSelection("c\r\nd");
@@ -235,7 +235,7 @@ public sealed class AnnotationEditSessionTests
     {
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 120, 80), "abcdef");
-        Assert.True(session.BeginTextEditing());
+        Assert.True(session.BeginEdit());
         session.Editor.Select(0, 6);
         session.Editor.ReplaceSelection("ab");
         Assert.True(session.CommitTextEdit());

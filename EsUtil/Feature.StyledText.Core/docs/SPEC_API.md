@@ -232,7 +232,7 @@
 | `TextEditRequest.Command` / `Extend` / `IsHandled` | 実行する操作 / 選択を広げるか / 操作があるか |
 | `TextEditKey` | 本層が扱うキー（`A` / `B` / `C` / `I` / `U` / `V` / `X` / `Digit5` / `Escape` / `Enter` / `Back` / `Delete` / `Left` / `Right` / `Up` / `Down` / `Home` / `End`） |
 | `TextEditModifiers` | `Control` / `Shift` / `Alt`（ビットフラグ） |
-| `TextEditCommand` | `SelectAll` / `Copy` / `Cut` / `Paste` / `EndEditing` / `InsertLineBreak` / `DeleteBackward` / `DeleteForward` / `CaretLeft` / `CaretRight` / `CaretUp` / `CaretDown` / `CaretLineStart` / `CaretLineEnd` / `ToggleBold` / `ToggleItalic` / `ToggleUnderline` / `ToggleStrike` |
+| `TextEditCommand` | `SelectAll` / `Copy` / `Cut` / `Paste` / `EndEdit` / `InsertLineBreak` / `DeleteBackward` / `DeleteForward` / `CaretLeft` / `CaretRight` / `CaretUp` / `CaretDown` / `CaretLineStart` / `CaretLineEnd` / `ToggleBold` / `ToggleItalic` / `ToggleUnderline` / `ToggleStrike` |
 
 | キー | 操作 |
 | --- | --- |

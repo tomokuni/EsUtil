@@ -194,7 +194,7 @@ MarqueeControl は 3 つの座標系を使い分けます。
 | 項目 | Avalonia UI 版 | MewUI 版 | WinUI 3 版 | WinForms 版 |
 | --- | --- | --- | --- | --- |
 | 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | XAML の要素（`Rectangle`） | GDI+（`Graphics`） |
-| イベント引数の座標 | `Point` / `Rect`（Avalonia の型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） |
+| イベント引数の座標 | `EsPoint` / `EsRect`（コアの型） | 同左 | 同左 | 同左 |
 | マウスダウン・アップのイベント | 公開しない | 同左 | 同左 | 同左 |
 | ホイール操作 | 扱わない（ホストが購読する） | 同左 | 同左 | 同左 |
 | 矢印キーによる nudge | フォーカスに依存しない（`TopLevel` を購読） | フォーカスが必要 | フォーカスが必要 | フォーカスが必要（`IsInputKey` で入力キーにする） |

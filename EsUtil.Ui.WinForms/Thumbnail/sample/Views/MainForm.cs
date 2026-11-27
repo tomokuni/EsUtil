@@ -1,10 +1,8 @@
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Ui.WinForms.Interop.Imaging;
 using EsUtil.Ui.WinForms.SampleKit;
 using EsUtil.Ui.WinForms.Thumbnail.Sample.Imaging;
 using EsUtil.Ui.WinForms.Thumbnail.Sample.Presentation;
 using Microsoft.Extensions.Logging;
-using DrawingBitmap = System.Drawing.Bitmap;
 
 namespace EsUtil.Ui.WinForms.Thumbnail.Sample.Views;
 
@@ -25,7 +23,7 @@ internal static class MainForm
         var logger = logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
-        var images = new List<DrawingBitmap>();
+        var images = new List<EsBitmap>();
         var appearance = ThumbnailAppearance.Default;
         var count = 0;
 
@@ -82,7 +80,7 @@ internal static class MainForm
                 ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))),
             SampleSettings.Buttons(
                 ("先頭の説明を変える", () => thumbnails.SetCaption(0, $"説明を変更 {DateTime.Now:HH:mm:ss}")),
-                ("先頭の画像を差し替える", () => thumbnails.SetImage(0, images[0])),
+                ("先頭の画像を差し替える", () => thumbnails.SetImage(0, EsReadOnlyBitmap.FromBitmap(images[0]))),
                 ("先頭の矩形を状態へ（SlotBounds）", ShowSlotBounds),
                 ("可視範囲を状態へ（VisibleRange）", ShowVisibleRange),
                 ("提示層の状態を出す（Presentation）", ShowPresentation),
@@ -159,9 +157,10 @@ internal static class MainForm
         void AddItem()
         {
             var image = TestImageFactory.Create(320, 200, count);
-            images.Add(EsBitmapDrawingInterop.ToDrawingBitmap(EsReadOnlyBitmap.FromBitmap(image)));
+            image.SetReadOnly();
+            images.Add(image);
 
-            thumbnails.Add(images[^1], $"capture-{count:D4}.png", $"生成した画像 {count}");
+            thumbnails.Add(EsReadOnlyBitmap.FromBitmap(images[^1]), $"capture-{count:D4}.png", $"生成した画像 {count}");
 
             count++;
             status.Text = $"{count} 件を表示しています。";

@@ -5,6 +5,8 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core.Logging;
 using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -238,7 +240,7 @@ public sealed class ThumbnailControl : ScrollViewer
     /// <param name="toolTip">ツールヒント。 null または空の場合は表示しない。</param>
     /// <param name="tag">2 回押しの通知へ渡す任意の値。</param>
     /// <returns>追加した項目の添字。</returns>
-    public int Add(IImage? image, string caption, string? toolTip = null, object? tag = null)
+    public int Add(EsReadOnlyBitmap? image, string caption, string? toolTip = null, object? tag = null)
     {
         var tile = new ThumbnailTile(image, caption, toolTip, tag)
         {
@@ -254,7 +256,7 @@ public sealed class ThumbnailControl : ScrollViewer
     /// <summary>項目の画像を差し替える。</summary>
     /// <param name="index">項目の添字。</param>
     /// <param name="image">新しい画像。 null の場合は画像を消す。</param>
-    public void SetImage(int index, IImage? image)
+    public void SetImage(int index, EsReadOnlyBitmap? image)
     {
         if (index < 0 || index >= _panel.Items.Count)
         {
@@ -278,8 +280,11 @@ public sealed class ThumbnailControl : ScrollViewer
             return;
         }
 
+        var previous = _panel.Items[index].Caption;
         _panel.Items[index].SetCaption(caption);
         ApplyState(index);
+        _log.LogSettingChangedTrace(
+            $"Caption[{index}]", LogText.ToPreview(previous), LogText.ToPreview(caption));
     }
 
     /// <summary>項目を表示領域へスクロールする。</summary>

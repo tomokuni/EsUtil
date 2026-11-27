@@ -17,7 +17,7 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 ## 1. 前提条件
 
 - 対象フレームワークは `net10.0-windows10.0.17763.0` で、`Avalonia` を参照します（バージョンの範囲は本体のプロジェクト ファイルが単一所有します）。
-- 画像は **`Avalonia.Media.IImage`** で受け取ります（コアの画像型は受け取りません。 変換はホストが行います）。
+- 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像）で受け取ります（表示境界の画像への変換は Interop が行います）。
 - 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。 本コントロールは入力の受付・スクロール・要素の配置だけを行います。
 - 単位は **DIP** です。
 
@@ -49,8 +49,8 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
 | `SlotBounds(int index)` | method | 項目の枠線の矩形（内容の座標）。 範囲外は `EsRect.Empty` |
 | `ClearItems()` | method | 一覧を空にする |
-| `Add(IImage? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
-| `SetImage(int index, IImage? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
+| `Add(EsReadOnlyBitmap? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
+| `SetImage(int index, EsReadOnlyBitmap? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `Refresh()` | method | 配置と見た目を解決し直す（外観の解決に使う値を外部で変えたときに呼ぶ） |
@@ -92,7 +92,7 @@ foreach (var file in files)
 }
 
 // 生成が終わった画像は添字で差し替える
-list.SetImage(index, bitmap);
+list.SetImage(index, image);
 
 // 見えている項目を先に作る
 var visible = list.VisibleRange;
@@ -109,7 +109,7 @@ for (var i = visible.First; i <= visible.Last; i++)
 
 ## 5. 制限事項
 
-- **画像は `IImage` だけ**です（コアの `EsReadOnlyBitmap` は受け取りません。 変換はホストが行います）。
+- **画像は `EsReadOnlyBitmap` だけ**です（表示境界の `IImage` への変換は `EsBitmapAdapter` が行います）。
 - **単体テストは `tests/` にあります**（検証の範囲と手順は [`../../.github/検証手順.md`](../../../.github/検証手順.md) を参照）。
 - **複数選択は提供しません**（単一選択だけです）。
 - **項目の要素（`ThumbnailTile`）は内部型**です（ホストは `Add` / `SetImage` / `SetCaption` を使います）。

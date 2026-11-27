@@ -86,8 +86,8 @@ flowchart TB
 変更前の文書を書き換えないため、記録した過去の状態が変わりません。 元に戻した後も**選択は識別子で引き継ぎます**（続けて操作できるようにする）。
 
 **適用は 1 文字単位**です（`RichText.ApplyStyle` が run を分割・結合する。 コアが単一所有）。
-ホストは本文の選択範囲をそのまま `TransformTextStyle(start, length, transform)` へ渡せます
-（`ApplyTextStyle` は書式を丸ごと差し替えるため、色や大きさが既定へ戻る。 1 つの属性だけを変えるときは使わない）。
+ホストは本文の選択範囲をそのまま `TransformStyle(start, length, transform)` へ渡せます
+（`ApplyStyle` は書式を丸ごと差し替えるため、色や大きさが既定へ戻る。 1 つの属性だけを変えるときは使わない）。
 
 **ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationEditorPanel` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 レベルは頻度で決めます。 `Information` は注釈ファイルの読み書きとファサードの生成、`Debug` は選択・本文の編集・書式の適用・パネルの表示と位置・押下と解放・注釈の追加、`Trace` はドラッグ中の文書の変更、`Error` は公開ファサードの例外です。 定義は `EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 

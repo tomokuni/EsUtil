@@ -163,12 +163,12 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>指定した位置（DIP）を左上として枠線を追加する。</summary>
     /// <param name="dip">左上の位置（ローカル DIP）。</param>
     /// <returns>追加した注釈の識別子。</returns>
-    public string AddFrameAt(Point dip) => AddFrame(ResolveDefaultBounds(ToSource(dip)));
+    public string AddFrameAt(EsPoint dip) => AddFrame(ResolveDefaultBounds(ToSourceDip(dip)));
 
     /// <summary>指定した位置（DIP）を左上として吹き出しを追加する。</summary>
     /// <param name="dip">左上の位置（ローカル DIP）。</param>
     /// <returns>追加した注釈の識別子。</returns>
-    public string AddBubbleAt(Point dip) => AddBubble(ResolveDefaultBounds(ToSource(dip)), string.Empty);
+    public string AddBubbleAt(EsPoint dip) => AddBubble(ResolveDefaultBounds(ToSourceDip(dip)), string.Empty);
 
     /// <summary>追加する注釈の既定の矩形を求める（指定した位置を左上にし、画像の内側へ収める）。</summary>
     /// <param name="sourcePoint">左上の位置（元画像ピクセル）。</param>
@@ -182,7 +182,12 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>指定した位置（DIP）に注釈があるかどうかを判定する（プレビューの入力を受け取るかの判断に使う）。</summary>
     /// <param name="dip">位置（ローカル DIP）。</param>
     /// <returns>注釈・ハンドル・しっぽの近くにある場合は <see langword="true"/>。</returns>
-    public bool HitTestAt(Point dip) => ResolvePointerKind(dip) != AnnotationPointerKind.None;
+    public bool HitTestAt(EsPoint dip) => IsOverAnnotation(ToDipPoint(dip));
+
+    /// <summary>指定した位置（ローカル DIP）に注釈があるかどうかを判定する。</summary>
+    /// <param name="dip">位置（ローカル DIP）。</param>
+    /// <returns>注釈・ハンドル・しっぽの近くにある場合は <see langword="true"/>。</returns>
+    private bool IsOverAnnotation(Point dip) => ResolvePointerKind(dip) != AnnotationPointerKind.None;
 
     /// <summary>元画像の幅（ピクセル）を取得または設定する。</summary>
     public int SourcePixelWidth { get; set; } = 1;
@@ -195,7 +200,7 @@ public sealed partial class AnnotationLayerControl : Panel
     public string? SelectedId
     {
         get => _session.SelectedId;
-        set => _session.Select(value);
+        set => _session.SelectItem(value);
     }
 
     /// <summary>新規作成時の既定値を取得または設定する。</summary>
@@ -249,15 +254,15 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>本文の書式を適用する範囲（文字数）を取得する。</summary>
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
-    /// <remarks>選択の指定は <see cref="SelectText(int, int)"/> で行う。</remarks>
+    /// <remarks>選択の指定は <see cref="Select(int, int)"/> で行う。</remarks>
     public (int Start, int Length) TextSelectionRange => _session.TextSelectionRange;
 
     /// <summary>本文の選択範囲を指定する（ホストが入力欄の選択位置を写すときに使う）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
-    public void SelectText(int start, int length)
+    public void Select(int start, int length)
     {
-        _session.SelectText(start, length);
+        _session.Select(start, length);
         InvalidateVisual();
     }
 
@@ -340,15 +345,15 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する
     /// （規則は `TextStyleEdit` と `TextEditState` が単一所有する）。
     /// </remarks>
-    public bool ApplyTextStyle(TextStyle style) => _session.ApplyTextStyle(style);
+    public bool ApplyStyle(TextStyle style) => _session.ApplyStyle(style);
 
     /// <summary>選択中の本文へ書式を適用する。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="length">長さ（0 は全体）。</param>
     /// <param name="style">書式。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(int start, int length, TextStyle style)
-        => _session.ApplyTextStyle(start, length, style);
+    public bool ApplyStyle(int start, int length, TextStyle style)
+        => _session.ApplyStyle(start, length, style);
 
     /// <summary>選択中の本文の書式を変換する（<see cref="TextSelectionRange"/> の範囲）。</summary>
     /// <param name="transform">書式を変える処理。</param>
@@ -357,16 +362,16 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <b>選択が無ければ以降の入力へ回す</b>: 変換の元になる書式は <see cref="SelectedTextStyle"/>（直前に入力した
     /// 文字の書式、または書式バーで選んだ書式）である。
     /// </remarks>
-    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
-        => _session.TransformTextStyle(transform);
+    public bool TransformStyle(Func<TextStyle, TextStyle> transform)
+        => _session.TransformStyle(transform);
 
     /// <summary>選択中の本文の書式を変換する（指定した属性だけ変える）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="length">長さ（0 は全体）。</param>
     /// <param name="transform">書式を変える処理。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
-        => _session.TransformTextStyle(start, length, transform);
+    public bool TransformStyle(int start, int length, Func<TextStyle, TextStyle> transform)
+        => _session.TransformStyle(start, length, transform);
 
     /// <summary>選択中の注釈の外観（枠線・内側・角丸）を取得または設定する。</summary>
     /// <value>外観。 何も選んでいない場合は `null`。 設定するとその注釈の外観を差し替える。</value>
@@ -556,7 +561,7 @@ public sealed partial class AnnotationLayerControl : Panel
     }
 
     /// <summary>選択と本文の編集を解除する（注釈の外をクリックしたとき）。</summary>
-    public void ClearSelection() => _session.Select(null);
+    public void ClearSelection() => _session.SelectItem(null);
 
 
     /// <summary>編集セッションの変更をコントロールの状態とイベントへ反映する。</summary>
@@ -565,7 +570,7 @@ public sealed partial class AnnotationLayerControl : Panel
     {
         if ((change & AnnotationEditChange.Editing) != 0)
         {
-            if (!_session.IsEditingText)
+            if (!_session.IsEditing)
             {
                 InvalidateVisual();
             }
@@ -579,7 +584,7 @@ public sealed partial class AnnotationLayerControl : Panel
 
         if ((change & AnnotationEditChange.Selection) != 0)
         {
-            if (_session.IsEditingText)
+            if (_session.IsEditing)
             {
                 _marquee.ResetSelection();
             }
@@ -655,8 +660,18 @@ public sealed partial class AnnotationLayerControl : Panel
     /// 注釈がカーソルからずれる。
     /// 押下時に決めた変換を解放まで使い続ける。
     /// </remarks>
-    private EsPoint ToSource(Point dip)
-        => (_frozenTransform ?? ResolveImageTransform()).ToSource(new EsPoint(dip.X, dip.Y));
+    private EsPoint ToSource(Point dip) => ToSourceDip(new EsPoint(dip.X, dip.Y));
+
+    /// <summary>ローカル DIP を元画像ピクセルへ変換する（コアの座標型で受け取る）。</summary>
+    /// <param name="dip">ローカル DIP の座標。</param>
+    /// <returns>元画像ピクセルの座標。</returns>
+    private EsPoint ToSourceDip(EsPoint dip)
+        => (_frozenTransform ?? ResolveImageTransform()).ToSource(dip);
+
+    /// <summary>コアの座標をこの UI の点へ変換する（公開 API がフレームワークの型を出さないようにする）。</summary>
+    /// <param name="point">コアの座標。</param>
+    /// <returns>この UI の点。</returns>
+    private static Point ToDipPoint(EsPoint point) => new(point.X, point.Y);
 
     /// <summary>押下中に使う変換を固定する（押下のたびに呼ぶ）。</summary>
     private void FreezeTransform() => _frozenTransform = ResolveImageTransform();

@@ -1,6 +1,7 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Logging;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.MewUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
@@ -228,14 +229,6 @@ public sealed class ThumbnailControl : Panel
         _log.LogItemCountChanged(previous, 0);
     }
 
-    /// <summary>一覧を空にする（子要素の削除ではなく、項目の削除）。</summary>
-    /// <remarks>
-    /// <b>Panel の <c>Clear()</c> を隠す</b>: 基底の <see cref="Panel.Clear"/> は子要素（内部のスクロール）を
-    /// 取り除くるため、呼ぶと画面が空になる（項目は残る）。 利用者が意図する「一覧を空にする」と
-    /// 同じ意味にするため、本メソッドで隠して <see cref="ClearItems"/> へ委仲する。
-    /// </remarks>
-    public new void Clear() => ClearItems();
-
     /// <summary>サムネイルを 1 件追加する。</summary>
     /// <param name="image">表示する画像。 null の場合は画像を描かない（代替画像を渡す）。</param>
     /// <param name="caption">サムネイルの下へ表示する名前。</param>
@@ -286,8 +279,11 @@ public sealed class ThumbnailControl : Panel
     {
         if (index >= 0 && index < _items.Count)
         {
+            var previous = _items[index].Caption;
             _items[index].SetCaption(caption);
             ApplyState(index);
+            _log.LogSettingChangedTrace(
+                $"Caption[{index}]", LogText.ToPreview(previous), LogText.ToPreview(caption));
         }
     }
 

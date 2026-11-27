@@ -16,7 +16,7 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// <b>色の選択は <see cref="ColorSelectorControl"/> を使う</b>: 色名・16 進・ピッカーの入力を UI の色選択
 /// コントロールが単一所有する（自前の解析を書かない。 保存値は <c>#AARRGGBB</c>）。
 /// </remarks>
-public static class AnnotationEditorControls
+internal static class AnnotationEditorControls
 {
     /// <summary>項目名のラベルの幅（DIP）。</summary>
     public const double LabelWidth = AnnotationEditorLayout.LabelWidth;

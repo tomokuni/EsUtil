@@ -128,7 +128,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         // 編集の開始・終了でバーを出し入れする（本文の位置は編集のたびに変わりうる）
         _layer.EditingChanged += (_, _) =>
         {
-            if (_layer.IsEditingText)
+            if (_layer.IsEditing)
             {
                 // **バーは選択ができてから出す**: 編集中でも 1 文字以上を選ぶまでは出さない
                 UpdateFormatBarVisibility();
@@ -137,7 +137,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
                 Dispatcher.UIThread.Post(
                     () =>
                     {
-                        if (_layer.IsEditingText)
+                        if (_layer.IsEditing)
                         {
                             _textEditor.Focus();
                         }
@@ -167,7 +167,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             SyncTextEditor();
 
             // 外観パネルは「選んでいる注釈」を編集するため、選択が変わったら閉じる
-            if (!_layer.IsEditingText)
+            if (!_layer.IsEditing)
             {
                 _stylePanel.Close();
             }
@@ -256,7 +256,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     }
     /// <summary>本文を編集中かどうかを取得する。</summary>
     /// <value>編集中の場合は <see langword="true"/>。 書式バーは 1 文字以上を選んでいる間だけ出る。</value>
-    public bool IsEditingText => _layer.IsEditingText;
+    public bool IsEditing => _layer.IsEditing;
 
     /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
     /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
@@ -629,7 +629,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         bar.SetKeyHandler(_textEditor.TryHandleEditingKey);
         bar.SetFocusRequest(() =>
         {
-            if (_layer.IsEditingText)
+            if (_layer.IsEditing)
             {
                 _textEditor.Focus();
             }
@@ -954,16 +954,16 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         public TextStyle SelectedTextStyle => layer.Session.SelectedTextStyle;
 
         /// <inheritdoc/>
-        public bool HasTextSelection => layer.HasTextSelection;
+        public bool HasSelection => layer.HasSelection;
 
         /// <inheritdoc/>
         public bool SelectedTextMatches(Func<TextStyle, bool> match) => layer.Session.SelectedTextMatches(match);
 
         /// <inheritdoc/>
-        public bool TransformTextStyle(Func<TextStyle, TextStyle> transform) => layer.Session.TransformTextStyle(transform);
+        public bool TransformStyle(Func<TextStyle, TextStyle> transform) => layer.Session.TransformStyle(transform);
 
         /// <inheritdoc/>
-        public bool ApplyTextStyle(TextStyle style) => layer.Session.ApplyTextStyle(style);
+        public bool ApplyStyle(TextStyle style) => layer.Session.ApplyStyle(style);
     }
 
     /// <summary>パネルをドラッグして動かす。</summary>
@@ -1114,7 +1114,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         // **編集中だけ入力を受ける**: 入力・IME・キャレットはコントロールが持ち、編集していない間は
         // レイヤーが本文を描き、押下もレイヤー（選択・移動・作成）へ渡す。
-        var editing = _layer.IsEditingText;
+        var editing = _layer.IsEditing;
         _textEditor.IsInputEnabled = editing;
         _textEditor.Focusable = editing;
         _textEditor.IsHitTestVisible = editing;
@@ -1145,7 +1145,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// </remarks>
     private void OnTextEditorChanged()
     {
-        if (!_layer.IsEditingText || _layer.Session.Selected is not BubbleAnnotation bubble)
+        if (!_layer.IsEditing || _layer.Session.Selected is not BubbleAnnotation bubble)
         {
             return;
         }
@@ -1162,9 +1162,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <summary>本文コントロールが編集を終えたら、編集セッションも終える。</summary>
     private void OnTextEditorEditingChanged()
     {
-        if (_layer.IsEditingText && !_textEditor.IsEditing)
+        if (_layer.IsEditing && !_textEditor.IsEditing)
         {
-            _layer.Session.EndTextEditing();
+            _layer.Session.EndEdit();
         }
     }
 

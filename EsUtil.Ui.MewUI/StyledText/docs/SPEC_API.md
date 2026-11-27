@@ -40,7 +40,7 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `IsEditing` / `BeginEditing()` / `EndEditing()` | 編集の状態（開始時のキャレットは本文の末尾）。 本文を押すと編集が始まり、押した位置へキャレットを置く |
+| `IsEditing` / `BeginEdit()` / `EndEdit()` | 編集の状態（開始時のキャレットは本文の末尾）。 本文を押すと編集が始まり、押した位置へキャレットを置く |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasSelection` | キャレットと選択 |
 | `Select(start, length)` / `SelectAll()` | 選択範囲の指定（端は書記素クラスタの境界へ揃える） |
 | `MoveCaret(index, extend)` | キャレットの移動（書記素クラスタの境界へ丸める） |
@@ -49,8 +49,8 @@
 | `SetCaretFromPoint(point, extend)` | 位置（元画像ピクセル）に最も近い文字位置 |
 | `ReplaceSelection(text)` / `ReplaceRange(start, end, text)` | 文字列の挿入・置き換え |
 | `DeleteAtCaret(forward)` | 選択範囲、または前後の 1 クラスタの削除 |
-| `ApplyTextStyle(style)` / `ApplyTextStyle(start, length, style)` | 選択範囲（指定範囲）の書式の差し替え |
-| `TransformTextStyle(transform)` / `TransformTextStyle(start, length, transform)` | 1 属性だけの変換 |
+| `ApplyStyle(style)` / `ApplyStyle(start, length, style)` | 選択範囲（指定範囲）の書式の差し替え |
+| `TransformStyle(transform)` / `TransformStyle(start, length, transform)` | 1 属性だけの変換 |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーへ表示する値・押下状態 |
 | `GetSelectedText()` / `CopyAsync()` / `CutAsync()` / `PasteAsync()` | 選択文字とクリップボード（`PasteAsync` は貼り付けた文字列を返し、無い場合は `null`） |
 | `RefreshCaretBlink()` | キャレットの点滅を点灯から始め直す（ホストが入力を所有する場合に呼ぶ） |
@@ -74,7 +74,7 @@
 | `TextFormat` | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード） |
 | `Refresh()` | 現在の選択範囲の書式を表示へ反映する |
 | `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理（**4 つの UI 版で同じ挙動**。 バー内の入力欄では転送しない） |
-| `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `TransformTextStyle` / `ApplyTextStyle` / `HasTextSelection`）。 ホストが自分の編集状態へつなぐ |
+| `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `TransformStyle` / `ApplyStyle` / `HasSelection`）。 ホストが自分の編集状態へつなぐ |
 | `StyledTextFormatBarContext` | `StyledTextControl` をバーの相手にする既定の接続（ホストはバーを作るときにこれを渡すだけでよい） |
 | `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記・出す項目（`Items`。 非表示の項目は詰めて並べる） |
 

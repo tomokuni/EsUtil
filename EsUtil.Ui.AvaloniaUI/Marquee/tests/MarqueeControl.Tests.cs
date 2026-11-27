@@ -14,7 +14,7 @@ using EsUtil.Ui.AvaloniaUI.Interop;
 using EsUtil.Ui.AvaloniaUI.Interop.Coord;
 using Xunit;
 using Point = Avalonia.Point;
-using Rect = Avalonia.Rect;
+using Rect = EsUtil.Platform.Core.Geometry.EsRect;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Tests;
 
@@ -196,7 +196,7 @@ public class MarqueeControlTests
 
         // 最終的な選択矩形（対象座標 = 等価変換）が通知される
         Assert.NotEmpty(rects);
-        Assert.Equal(new Rect(20, 20, 60, 60), rects[^1]);
+        Assert.Equal(new Rect(20, 20, 60, 60, EsRectInterval.Closed), rects[^1]);
         window.Close();
     }
 
@@ -219,7 +219,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerReleasedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(80, 80)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
         Assert.NotEmpty(rects);
-        Assert.Equal(new Rect(0, 0, 80, 80), rects[^1]);
+        Assert.Equal(new Rect(0, 0, 80, 80, EsRectInterval.Closed), rects[^1]);
         window.Close();
     }
 
@@ -242,7 +242,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerReleasedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(250, 180)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
         Assert.NotEmpty(rects);
-        Assert.Equal(new Rect(20, 20, 180, 160), rects[^1]);
+        Assert.Equal(new Rect(20, 20, 180, 160, EsRectInterval.Closed), rects[^1]);
         window.Close();
     }
 
@@ -415,7 +415,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerReleasedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(80, 80)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
         Assert.NotEmpty(rects);
-        Assert.Equal(new Rect(40, 40, 120, 120), rects[^1]);
+        Assert.Equal(new Rect(40, 40, 120, 120, EsRectInterval.Closed), rects[^1]);
         window.Close();
     }
 
@@ -436,7 +436,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, control, pointer, window, ToScreenPoint(control, new Point(50, 40)), 0UL, LeftPressed(), KeyModifiers.None));
         control.RaiseEvent(new PointerReleasedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(50, 40)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
-        Assert.Equal(new Rect(10, 10, 40, 30), rects[^1]);
+        Assert.Equal(new Rect(10, 10, 40, 30, EsRectInterval.Closed), rects[^1]);
         window.Close();
     }
 

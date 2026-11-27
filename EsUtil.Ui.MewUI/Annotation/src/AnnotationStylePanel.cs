@@ -11,7 +11,7 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// <b>選択中の注釈だけを編集する</b>: 既存の注釈の外観・書式は注釈ごとに持つ（既定値を変えても既存は変わらない）。<br/>
 /// <b>行の部品は <see cref="AnnotationEditorControls"/> を共有する</b>（ホストの設定ペインと同じ見た目・同じ色の解釈）。
 /// </remarks>
-public sealed class AnnotationStylePanel : ContentControl
+internal sealed class AnnotationStylePanel : ContentControl
 {
     /// <summary>編集パネルを初期化する。</summary>
     /// <param name="layer">編集対象のコントロール。</param>

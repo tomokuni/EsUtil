@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -16,7 +17,7 @@ public class ThumbnailControlTests
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。 所有権は <see cref="ThumbnailControl"/> へ移す。</returns>
-    private static Bitmap CreateBitmap(int width, int height) => new(width, height);
+    private static EsReadOnlyBitmap CreateBitmap(int width, int height) => EsReadOnlyBitmap.Create(width, height);
 
     /// <summary>項目を末尾へ追加し、追加した添字を返すことを検証する。</summary>
     [Fact]

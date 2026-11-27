@@ -265,7 +265,7 @@ flowchart TB
 
 - `MarqueeInteractionState` enum（public）: NoSelection / StartPointNudging / Dragging / DraggingNudging / Selected / SelectedNudging
 - `MarqueeSnapshot` readonly record struct（public）: State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive / HasSelection。 座標は UI 非依存の `EsRect` / `EsPoint`（各 UI の境界で自前の型へ変換する）。 値型のため通知のたびにヒープを確保しない
-- `SelectionRectEventArgs`（public）: Rect（Avalonia）+ Snapshot
+- `SelectionRectEventArgs`（public）: `EsRect`（対象座標）+ Snapshot
 - `MarqueePointEventArgs`（public）: EsPoint（コア）+ Snapshot
 - `MarqueeRenderedEventArgs`（public）: Context（`DrawingContext`。 描画中のみ有効）+ Content（`MarqueeDrawPlan`。 描画計画）
 

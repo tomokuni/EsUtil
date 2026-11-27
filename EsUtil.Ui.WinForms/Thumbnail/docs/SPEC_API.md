@@ -17,7 +17,7 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 ## 1. 前提条件
 
 - 対象フレームワークは `net10.0-windows10.0.17763.0` で、`UseWindowsForms` を有効にします。
-- 画像は **`System.Drawing.Bitmap`** で受け取ります。 **渡した画像の所有権はコントロールへ移ります**（差し替え時と破棄時に解放します）。
+- 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像）で受け取ります。 **所有権は移りません**（コントロールは表示用の複製を自前で持ちます）。
 - 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。 本コントロールは入力の受付・スクロール・描画（GDI+）だけを行います。
 - 単位は **DIP** です（`AutoScaleMode` は `Dpi` を前提とします）。
 
@@ -50,8 +50,8 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
 | `SlotBounds(int index)` | method | 項目の枠線の矩形（内容の座標。 コアの `EsRect`）。 範囲外は空の矩形 |
 | `ClearItems()` | method | 一覧を空にする（**保持している画像を解放する**） |
-| `Add(Bitmap? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す（**画像の所有権は本コントロールへ移る**） |
-| `SetImage(int index, Bitmap? image)` | method | 項目の画像を差し替える（**所有権は本コントロールへ移り、直前の画像は解放される**）。 範囲外は何もしない |
+| `Add(EsReadOnlyBitmap? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
+| `SetImage(int index, EsReadOnlyBitmap? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `Refresh()` | method | 配置と見た目を解き直して描き直す（基底の `Control.Refresh` を隠し、配置の解決も行う） |
@@ -95,7 +95,7 @@ foreach (var file in files)
 }
 
 // 生成が終わった画像は添字で差し替える（渡した画像の所有権はコントロールへ移る）
-list.SetImage(index, bitmap);
+list.SetImage(index, image);
 ```
 
 ## 4. 座標系と単位
@@ -105,7 +105,7 @@ list.SetImage(index, bitmap);
 
 ## 5. 制限事項
 
-- **画像は `System.Drawing.Bitmap` だけ**です（コアの画像型は受け取りません。 変換はホストが行います）。
+- **画像は `EsReadOnlyBitmap` だけ**です（GDI+ の画像への変換は `EsBitmapDrawingInterop` が行います）。
 - **画像の所有権はコントロールへ移ります**（渡した画像をホストが解放しないでください。 二重解放になります）。
 - **単体テストは `tests/` にあります**（検証の範囲と手順は [`../../.github/検証手順.md`](../../../.github/検証手順.md) を参照）。
 - **複数選択は提供しません**（単一選択だけです）。

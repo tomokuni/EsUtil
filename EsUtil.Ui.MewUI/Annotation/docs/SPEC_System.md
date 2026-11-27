@@ -66,7 +66,7 @@ flowchart LR
 
 ### 4.1 本文の書式を変える経路
 
-書式バーと右クリックのフライアウトは、どちらも `TransformTextStyle(start, length, transform)` を呼びます（1 つの属性だけを変え、色や大きさを保つ）。 適用は 1 文字単位で、run の分割・結合はコアの `RichText.ApplyStyle` が単一所有します。
+書式バーと右クリックのフライアウトは、どちらも `TransformStyle(start, length, transform)` を呼びます（1 つの属性だけを変え、色や大きさを保つ）。 適用は 1 文字単位で、run の分割・結合はコアの `RichText.ApplyStyle` が単一所有します。
 
 ### 4.2 元に戻す・やり直す（操作の単位）
 

@@ -147,7 +147,7 @@ public sealed partial class StyledTextControl
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
     /// <remarks>フォーカスを移し、キャレットの点滅を点灯から始める。</remarks>
-    public void BeginEditing()
+    public void BeginEdit()
     {
         if (!IsInputEnabled)
         {
@@ -166,7 +166,7 @@ public sealed partial class StyledTextControl
     }
 
     /// <summary>本文の編集を終える（内容は既に <see cref="RichTextValue"/> へ入っている）。</summary>
-    public void EndEditing()
+    public void EndEdit()
     {
         if (_editor.EndEdit() == TextEditChange.None)
         {
@@ -241,20 +241,20 @@ public sealed partial class StyledTextControl
     /// <summary>選択範囲の書式を丸ごと適用する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="style">適用する書式。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(TextStyle style) => IsTextChanged(_editor.ApplyStyle(style));
+    public bool ApplyStyle(TextStyle style) => IsTextChanged(_editor.ApplyStyle(style));
 
     /// <summary>指定した範囲の書式を丸ごと適用する（ホストが範囲を指定する場合）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="length">長さ（文字数。 0 以下は本文全体）。</param>
     /// <param name="style">適用する書式。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(int start, int length, TextStyle style)
+    public bool ApplyStyle(int start, int length, TextStyle style)
         => IsTextChanged(_editor.ApplyStyle(start, length, style));
 
     /// <summary>選択範囲の書式を 1 属性だけ変換する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
+    public bool TransformStyle(Func<TextStyle, TextStyle> transform)
         => IsTextChanged(_editor.TransformStyle(transform));
 
     /// <summary>指定した範囲の書式を 1 属性だけ変換する（ホストが範囲を指定する場合）。</summary>
@@ -262,7 +262,7 @@ public sealed partial class StyledTextControl
     /// <param name="length">長さ（文字数。 0 以下は本文全体）。</param>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
+    public bool TransformStyle(int start, int length, Func<TextStyle, TextStyle> transform)
         => IsTextChanged(_editor.TransformStyle(start, length, transform));
 
     /// <summary>書式バーへ表示する書式を取得する（選択が無い間は覚えた書式）。</summary>
@@ -405,8 +405,8 @@ public sealed partial class StyledTextControl
         var request = TextEditKeyMap.Resolve(ToTextEditKey(key), ToTextEditModifiers(modifiers));
         switch (request.Command)
         {
-            case TextEditCommand.EndEditing:
-                EndEditing();
+            case TextEditCommand.EndEdit:
+                EndEdit();
                 return true;
             case TextEditCommand.Copy:
                 _ = CopyAsync();
@@ -460,7 +460,7 @@ public sealed partial class StyledTextControl
             return;
         }
 
-        BeginEditing();
+        BeginEdit();
         Focus();
 
         var extend = (e.KeyModifiers & KeyModifiers.Shift) != 0;
@@ -589,7 +589,7 @@ public sealed partial class StyledTextControl
     /// <summary>キャレットの点滅を点灯から始め直す（ホストが入力を持つ場合に呼ぶ）。</summary>
     /// <remarks>
     /// <b>ホストが入力を持つ場合</b>: 本文の編集をホスト（注釈のレイヤーなど）が行うときは
-    /// <see cref="BeginEditing"/> を通らないため、点滅の起点を進める入口が要る。
+    /// <see cref="BeginEdit"/> を通らないため、点滅の起点を進める入口が要る。
     /// </remarks>
     public void RefreshCaretBlink()
     {

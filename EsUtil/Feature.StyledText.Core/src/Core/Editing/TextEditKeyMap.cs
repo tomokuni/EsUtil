@@ -44,10 +44,10 @@ public static class TextEditKeyMap
         switch (key)
         {
             case TextEditKey.Escape:
-                return new TextEditRequest(TextEditCommand.EndEditing, false);
+                return new TextEditRequest(TextEditCommand.EndEdit, false);
             case TextEditKey.Enter:
                 return control
-                    ? new TextEditRequest(TextEditCommand.EndEditing, false)
+                    ? new TextEditRequest(TextEditCommand.EndEdit, false)
                     : new TextEditRequest(TextEditCommand.InsertLineBreak, false);
             case TextEditKey.Back:
                 return new TextEditRequest(TextEditCommand.DeleteBackward, false);

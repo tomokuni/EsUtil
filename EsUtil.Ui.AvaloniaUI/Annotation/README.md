@@ -112,8 +112,8 @@ layer.AddFrame(new EsRect(60, 60, 340, 220));
 layer.AddBubble(new EsRect(900, 120, 380, 170), "ここが重要です。");
 
 // 本文の編集（書式バーは AnnotationEditorPanel が出し入れする）
-layer.BeginTextEditing();
-layer.EndTextEditing();
+layer.BeginEdit();
+layer.EndEdit();
 
 // 保存（注釈 JSON と合成画像の書き出し）はホストが行う
 var path = AnnotationJson.GetDocumentPath(imagePath);

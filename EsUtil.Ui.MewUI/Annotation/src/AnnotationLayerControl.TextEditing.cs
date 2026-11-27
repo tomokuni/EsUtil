@@ -17,13 +17,13 @@ public sealed partial class AnnotationLayerControl
     public event EventHandler? TextSelectionChanged;
 
     /// <summary>本文を編集中かどうかを取得する。</summary>
-    public bool IsEditingText => _session.IsEditingText;
+    public bool IsEditing => _session.IsEditing;
 
     /// <summary>キャレットの位置（文字数）を取得する。</summary>
     public int CaretIndex => _session.CaretIndex;
 
     /// <summary>本文の文字を選んでいるかどうかを取得する。</summary>
-    public bool HasTextSelection => IsEditingText && _session.SelectionLength > 0;
+    public bool HasSelection => IsEditing && _session.SelectionLength > 0;
 
     /// <summary>選択範囲の開始位置（文字数）を取得する。</summary>
     public int SelectionStart => _session.SelectionStart;
@@ -40,10 +40,10 @@ public sealed partial class AnnotationLayerControl
     /// <b>フォーカスは本文コントロールが受け取ります</b>: レイヤーはフォーカスを取りません（入力と IME の
     /// 宛先を 1 つにするため）。 編集セッションを開始するだけです。
     /// </remarks>
-    public bool BeginTextEditing() => _session.BeginTextEditing();
+    public bool BeginEdit() => _session.BeginEdit();
 
     /// <summary>本文の編集を終える（内容は既に文書へ入っている）。</summary>
-    public void EndTextEditing() => _session.EndTextEditing();
+    public void EndEdit() => _session.EndEdit();
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを取得する（書式ボタンの押下状態に使う）。</summary>
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>

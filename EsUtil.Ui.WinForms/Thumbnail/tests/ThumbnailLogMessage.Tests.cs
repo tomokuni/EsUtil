@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -26,9 +27,9 @@ public class ThumbnailLogMessageTests
         try
         {
             ThumbnailLogMessage.Prefix = "[Test]";
-            using var before = new Bitmap(4, 3);
-            using var after = new Bitmap(8, 6);
-            logger.LogImageChanged("Image[2]", ThumbnailLogMessage.Describe(before), ThumbnailLogMessage.Describe(after));
+            using var before = EsReadOnlyBitmap.Create(4, 3);
+            using var after = EsReadOnlyBitmap.Create(8, 6);
+            logger.LogImageChanged("Image[2]", before, after);
         }
         finally
         {
@@ -45,7 +46,8 @@ public class ThumbnailLogMessageTests
     {
         var logger = new RecordingLogger();
 
-        logger.LogImageChanged("Image[0]", "8x6", "8x6");
+        using var image = EsReadOnlyBitmap.Create(8, 6);
+        logger.LogImageChanged("Image[0]", image, image);
 
         Assert.Empty(logger.Messages);
     }
@@ -80,15 +82,25 @@ public class ThumbnailLogMessageTests
         Assert.Empty(logger.Messages);
     }
 
-    /// <summary>画像の記述がカルチャに依存しないことを検証する。</summary>
+    /// <summary>寸法をカルチャに依存せずに記録することを検証する。</summary>
     [Fact]
     internal void Describe_カルチャに依存しない寸法を返す()
     {
-        using var image = new Bitmap(12, 34);
+        var logger = new RecordingLogger();
+        using var before = EsReadOnlyBitmap.Create(12, 34);
+        using var after = EsReadOnlyBitmap.Create(56, 78);
 
-        Assert.Equal(
-            string.Format(CultureInfo.InvariantCulture, "{0}x{1}", 12, 34),
-            ThumbnailLogMessage.Describe(image));
-        Assert.Null(ThumbnailLogMessage.Describe(null));
+        var previousCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("ar-SA");
+            logger.LogImageChanged("Image[0]", before, after);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+
+        Assert.Equal("[Thumbnail] 設定: Image[0] 12x34 → 56x78", Assert.Single(logger.Messages));
     }
 }

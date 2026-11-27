@@ -63,6 +63,29 @@ public static class EsBitmapExtensions
         return EsBitmapAdapter.Adopt(EsBitmap.Create(width, height, colorArgb));
     }
 
+    /// <summary>Avalonia Bitmap から読み取り専用の画像を生成する（複製するため元は変更されない）。</summary>
+    /// <param name="bitmap">変換元の Avalonia Bitmap。</param>
+    /// <returns>生成された読み取り専用の画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>表示境界の画像をそのまま受け取る側へ渡すための入口</b>である（画像を受け取る API は
+    /// <see cref="EsReadOnlyBitmap"/> を取る）。 画素は 1 回だけ複製する。
+    /// </remarks>
+    public static unsafe EsReadOnlyBitmap ToEsReadOnlyBitmap(this Bitmap bitmap)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+
+        var w = bitmap.PixelSize.Width;
+        var h = bitmap.PixelSize.Height;
+        return EsReadOnlyBitmap.CreateFilled(w, h, dst =>
+        {
+            var stride = w * EsReadOnlyBitmap.BytesPerPixel;
+            fixed (byte* p = dst)
+            {
+                bitmap.CopyPixels(new PixelRect(0, 0, w, h), (nint)p, checked(stride * h), stride);
+            }
+        });
+    }
+
     /// <summary>Avalonia Bitmap からラッパーを生成する（複製するため元は変更されない）。</summary>
     /// <param name="bitmap">変換元の Avalonia Bitmap。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>

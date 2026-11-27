@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Logging;
 using EsUtil.Feature.StyledText.Core.Editing;
 using EsUtil.Feature.StyledText.Logging;
 using EsUtil.Feature.StyledText.Presenter.Formatting;
@@ -13,7 +14,7 @@ public sealed class TextLogMessageTests
     [Fact]
     internal void ToPreview_100文字を超えたら切り詰める()
     {
-        var preview = TextLogMessage.ToPreview(new string('あ', 150));
+        var preview = LogText.ToPreview(new string('あ', 150));
 
         Assert.Equal(101, preview.Length);
         Assert.EndsWith("…", preview, StringComparison.Ordinal);
@@ -22,7 +23,7 @@ public sealed class TextLogMessageTests
     /// <summary>改行は 1 行へ畳む（ログの 1 行を壊さない）。</summary>
     [Fact]
     internal void ToPreview_改行を1行にする()
-        => Assert.Equal("a\\nb", TextLogMessage.ToPreview("a\r\nb"));
+        => Assert.Equal("a\\nb", LogText.ToPreview("a\r\nb"));
 
     /// <summary>本文の変更は文字数と本文の先頭を記録する。</summary>
     [Fact]

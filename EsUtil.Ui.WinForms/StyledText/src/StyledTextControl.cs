@@ -476,7 +476,7 @@ public sealed class StyledTextControl : Control
     public event EventHandler? EditingChanged;
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
-    public void BeginEditing()
+    public void BeginEdit()
     {
         if (!_isInputEnabled)
         {
@@ -495,7 +495,7 @@ public sealed class StyledTextControl : Control
     }
 
     /// <summary>本文の編集を終える（内容は既に <see cref="RichTextValue"/> へ入っている）。</summary>
-    public void EndEditing()
+    public void EndEdit()
     {
         if (_editor.EndEdit() == TextEditChange.None)
         {
@@ -570,20 +570,20 @@ public sealed class StyledTextControl : Control
     /// <summary>選択範囲の書式を丸ごと適用する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="style">適用する書式。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(TextStyle style) => IsTextChanged(_editor.ApplyStyle(style));
+    public bool ApplyStyle(TextStyle style) => IsTextChanged(_editor.ApplyStyle(style));
 
     /// <summary>指定した範囲の書式を丸ごと適用する。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="length">長さ（文字数。 0 以下は本文全体）。</param>
     /// <param name="style">適用する書式。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(int start, int length, TextStyle style)
+    public bool ApplyStyle(int start, int length, TextStyle style)
         => IsTextChanged(_editor.ApplyStyle(start, length, style));
 
     /// <summary>選択範囲の書式を 1 属性だけ変換する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
+    public bool TransformStyle(Func<TextStyle, TextStyle> transform)
         => IsTextChanged(_editor.TransformStyle(transform));
 
     /// <summary>指定した範囲の書式を 1 属性だけ変換する。</summary>
@@ -591,7 +591,7 @@ public sealed class StyledTextControl : Control
     /// <param name="length">長さ（文字数。 0 以下は本文全体）。</param>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
+    public bool TransformStyle(int start, int length, Func<TextStyle, TextStyle> transform)
         => IsTextChanged(_editor.TransformStyle(start, length, transform));
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを取得する。</summary>
@@ -773,8 +773,8 @@ public sealed class StyledTextControl : Control
         var request = TextEditKeyMap.Resolve(ToTextEditKey(keyData & Keys.KeyCode), ToTextEditModifiers(keyData));
         switch (request.Command)
         {
-            case TextEditCommand.EndEditing:
-                EndEditing();
+            case TextEditCommand.EndEdit:
+                EndEdit();
                 return true;
             case TextEditCommand.Copy:
                 _ = CopyAsync();
@@ -824,7 +824,7 @@ public sealed class StyledTextControl : Control
         }
 
         // **押下で編集を始める**: 利用者は「編集を開始」を押さずに本文へ書き始められる
-        BeginEditing();
+        BeginEdit();
         Focus();
         var extend = (ModifierKeys & Keys.Shift) != 0;
         SetCaretFromPoint(ToSource(e.Location), extend);

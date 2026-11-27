@@ -217,17 +217,17 @@
 | `Subscribe(notify)` | 変更（`Document` / `Selection` / `Editing` / `TextSelection`）の購読。 戻り値の破棄で解除する |
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（画像の内側へ収め、追加した注釈を選択する） |
 | `DeleteSelected()` / `SetSelectedText(text)` | 選択中の注釈の削除・本文の差し替え |
-| `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・変換（選択が無ければ以降の入力へ回す） |
+| `ApplyStyle(...)` / `TransformStyle(...)` | 選択範囲の書式の差し替え・変換（選択が無ければ以降の入力へ回す） |
 | `TransformSelectedAppearance(transform)` / `SetSelectedBodyPadding(padding)` / `TransformSelectedTail(transform)` | 選択中の注釈の外観・余白・しっぽの変更 |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更（変わらない場合は `false` を返し、履歴に積まない） |
 | `BeginChange()` / `SetBounds(bounds)` / `SetTailTip(tip)` / `CommitChange()` | ドラッグ 1 手の記録（押下で控え、移動のたびに反映し、最初の変更で 1 手として積む） |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 変更履歴（編集中はキャレットを本文の範囲へ収める） |
-| `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文の編集の開始・終了 |
+| `BeginEdit()` / `EndEdit()` / `IsEditing` | 本文の編集の開始・終了 |
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・入力・削除・書式）。 UI は同じ実体を本文コントロールへ渡す |
 | `CommitTextEdit()` | 本文コントロールが `Editor` へ加えた変更を文書へ書き戻す（1 手として履歴へ積む） |
-| `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` | 本文のキャレットと選択（`TextEditor` の値） |
-| `TextSelectionRange` | 書式の適用先の範囲（文字数）。 取得だけを行い、指定は `SelectText` で行う |
-| `SelectText(start, length)` | 本文の選択範囲を指定する（ホストが本文の入力欄の選択位置を写すときに使う） |
+| `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasSelection` | 本文のキャレットと選択（`TextEditor` の値） |
+| `TextSelectionRange` | 書式の適用先の範囲（文字数）。 取得だけを行い、指定は `Select` で行う |
+| `Select(start, length)` | 本文の選択範囲を指定する（ホストが本文の入力欄の選択位置を写すときに使う） |
 | `NotifyTextSelectionChanged()` | 本文コントロールが行った選択の変更を記録して購読者へ通知する（同じ範囲では繰り返さない） |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーの表示値・押下状態 |
 

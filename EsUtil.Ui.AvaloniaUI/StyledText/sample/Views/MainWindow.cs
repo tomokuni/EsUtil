@@ -90,7 +90,7 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("行間", 1.2, 0.8, 2.0, 0.1, true, value => _editor.LineHeightFactor = value),
                 SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => _editor.SourceToClientScaling = value),
                 SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
-                    _editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })),
+                    _editor.ApplyStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })),
                 SampleSettings.Check("入力を受け付ける", true, value => _editor.IsInputEnabled = value),
                 SampleSettings.Check("編集中に書式バーを自動表示", true, value =>
                 {
@@ -115,8 +115,8 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.Buttons(
-                    ("編集を開始", () => _editor.BeginEditing()),
-                    ("編集を終了", () => _editor.EndEditing()),
+                    ("編集を開始", () => _editor.BeginEdit()),
+                    ("編集を終了", () => _editor.EndEdit()),
                     ("すべて選択", () => _editor.SelectAll())),
                 SampleSettings.Buttons(
                     ("先頭 5 文字を選択", () => _editor.Select(0, 5)),
@@ -136,14 +136,14 @@ public sealed class MainWindow : Window
                     ("前を削除", () => _editor.DeleteAtCaret(forward: false)),
                     ("後を削除", () => _editor.DeleteAtCaret(forward: true))),
                 SampleSettings.Buttons(
-                    ("太字の切替", () => _editor.TransformTextStyle(static style => style with { IsBold = !style.IsBold })),
-                    ("斜体の切替", () => _editor.TransformTextStyle(static style => style with { IsItalic = !style.IsItalic })),
-                    ("下線の切替", () => _editor.TransformTextStyle(static style => style with { IsUnderline = !style.IsUnderline }))),
+                    ("太字の切替", () => _editor.TransformStyle(static style => style with { IsBold = !style.IsBold })),
+                    ("斜体の切替", () => _editor.TransformStyle(static style => style with { IsItalic = !style.IsItalic })),
+                    ("下線の切替", () => _editor.TransformStyle(static style => style with { IsUnderline = !style.IsUnderline }))),
                 SampleSettings.Buttons(
-                    ("取り消し線の切替", () => _editor.TransformTextStyle(static style => style with { IsStrike = !style.IsStrike })),
-                    ("文字色を変える", () => _editor.ApplyTextStyle(
+                    ("取り消し線の切替", () => _editor.TransformStyle(static style => style with { IsStrike = !style.IsStrike })),
+                    ("文字色を変える", () => _editor.ApplyStyle(
                         TextDefaults.DefaultStyle with { Color = System.Drawing.Color.FromArgb(255, 0, 90, 200) })),
-                    ("書式を戻す", () => _editor.ApplyTextStyle(TextDefaults.DefaultStyle))),
+                    ("書式を戻す", () => _editor.ApplyStyle(TextDefaults.DefaultStyle))),
                 SampleSettings.Buttons(
                     ("選択をコピー", () => _ = _editor.CopyAsync()),
                     ("選択を切り取り", () => _ = _editor.CutAsync()),
@@ -189,7 +189,7 @@ public sealed class MainWindow : Window
             Opened += (_, _) =>
             {
                 UpdateHosting(popup: true);
-                _editor.BeginEditing();
+                _editor.BeginEdit();
                 _editor.Select(0, 5);
                 UpdateFormatBar();
                 UpdateStatus();
@@ -250,7 +250,7 @@ public sealed class MainWindow : Window
         // 本文を先頭の 1 行へ戻す（編集の状態も捨てる）
         void ResetText()
         {
-            _editor.EndEditing();
+            _editor.EndEdit();
             _editor.RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
             UpdateStatus();
         }

@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using System.Reflection;
 using Xunit;
 
@@ -48,12 +49,7 @@ public class ThumbnailPaintTests
     {
         using var control = new ThumbnailControl { ImageWidth = 96, Width = 400, Height = 300 };
         control.Add(null, "a");
-        using var image = new Bitmap(64, 48);
-        using (var graphics = Graphics.FromImage(image))
-        {
-            graphics.Clear(Color.FromArgb(255, 255, 0, 0));
-        }
-
+        using var image = EsReadOnlyBitmap.Create(64, 48, Color.FromArgb(255, 255, 0, 0));
         control.SetImage(0, image);
         control.Refresh();
 
@@ -72,21 +68,11 @@ public class ThumbnailPaintTests
         control.Add(null, "a");
         control.Refresh();
 
-        // 画像の所有権は一覧へ移る（テストから破棄しない）
-        var red = new Bitmap(64, 48);
-        using (var graphics = Graphics.FromImage(red))
-        {
-            graphics.Clear(Color.FromArgb(255, 255, 0, 0));
-        }
-
+        // 画像の所有権は移動しない（一覧は表示用の複製を持つ）
+        using var red = EsReadOnlyBitmap.Create(64, 48, Color.FromArgb(255, 255, 0, 0));
         control.SetImage(0, red);
 
-        using var blue = new Bitmap(64, 48);
-        using (var graphics = Graphics.FromImage(blue))
-        {
-            graphics.Clear(Color.FromArgb(255, 0, 0, 255));
-        }
-
+        using var blue = EsReadOnlyBitmap.Create(64, 48, Color.FromArgb(255, 0, 0, 255));
         control.SetImage(0, blue);
 
         var bluePixels = CountPixels(control, 400, 300, static pixel => pixel.B > 200 && pixel.R < 60);

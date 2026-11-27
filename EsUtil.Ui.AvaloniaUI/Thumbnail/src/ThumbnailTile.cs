@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 
 namespace EsUtil.Ui.AvaloniaUI.Thumbnail;
 
@@ -55,8 +57,11 @@ internal sealed class ThumbnailTile : Panel
     private static TextBlock CreateToolTip(string text)
         => new() { Text = text, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap };
 
-    /// <summary>表示する画像（高さの計算に使う）。</summary>
-    private IImage? _source;
+    /// <summary>表示する画像（真実。 高さの計算と差し替えの判定に使う）。</summary>
+    private EsReadOnlyBitmap? _source;
+
+    /// <summary>表示用のアダプタ（表示境界の <see cref="IImage"/>。 差し替えのたびに作り直す）。</summary>
+    private EsBitmapAdapter? _adapter;
 
     /// <summary>画像の幅（DIP）。</summary>
     private double _imageWidth;
@@ -66,7 +71,7 @@ internal sealed class ThumbnailTile : Panel
     /// <param name="caption">表示する名前。</param>
     /// <param name="toolTip">ツールヒント。</param>
     /// <param name="tag">項目へ付ける任意の値。</param>
-    public ThumbnailTile(IImage? image, string caption, string? toolTip, object? tag)
+    public ThumbnailTile(EsReadOnlyBitmap? image, string caption, string? toolTip, object? tag)
     {
         Tag = tag;
         Caption = caption;
@@ -119,14 +124,19 @@ internal sealed class ThumbnailTile : Panel
 
     /// <summary>表示する画像を取得する。</summary>
     /// <value>設定されている画像。 未設定は null。</value>
-    public IImage? CurrentImage => _source;
+    public EsReadOnlyBitmap? CurrentImage => _source;
 
     /// <summary>表示する画像を設定する。</summary>
     /// <param name="image">画像。 null の場合は画像を描かない。</param>
-    public void SetImage(IImage? image)
+    public void SetImage(EsReadOnlyBitmap? image)
     {
         _source = image;
-        _image.Source = image;
+        var previous = _adapter;
+        _adapter = image is null ? null : new EsBitmapAdapter(image);
+        _image.Source = _adapter;
+
+        // 旧アダプタは新しい表示へ差し替えた後に破棄する（表示が射影を参照している間は破棄しない）
+        previous?.Dispose();
         RecomputeHeight();
     }
 
@@ -135,7 +145,7 @@ internal sealed class ThumbnailTile : Panel
     {
         ImageHeight = _source is null
             ? _imageWidth
-            : ThumbnailPresenter.ResolveImageHeight(_imageWidth, (int)_source.Size.Width, (int)_source.Size.Height);
+            : ThumbnailPresenter.ResolveImageHeight(_imageWidth, _source.Width, _source.Height);
         InvalidateMeasure();
     }
 
