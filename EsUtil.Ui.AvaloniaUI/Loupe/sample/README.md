@@ -21,7 +21,7 @@
 - ルーペの拡大元は**コアの画像（`EsReadOnlyBitmap`）**として渡し、ホストが表示に使っている画像は**表示用の射影（`DisplaySource`）**として渡します（射影は省略可能。 寸法が一致するときだけ使われ、切り出しの複製を作りません）。
 - 外観設定（拡大率・サイズ・十字線・画像外の色・枠線・描画スケール）をスライダー/コンボボックスで変更できます。
 - `LoupeControl` をVisual Treeへ配置し、内部の `Image` 要素で表示します。
-- `Clear()` / `InvalidateRender()` / `LogPrefix` の API 呼び出しをボタンで確認できます。
+- `IsVisible`（非表示）/ `RefreshPosition()` / `InvalidateRender()` / `LogPrefix` の API 呼び出しをボタンで確認できます。
 - `LoupeControl.Log` に `ILogger` を設定し、設定の変更ログを画面（右下のログ欄）で確認できます。 ログは **Serilog** で非同期に出力します。
 
 ## 2. 実行方法
@@ -51,7 +51,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.Aval
 | 描画スケール | `ClientToPixelScaling`（DIP→物理ピクセル変換の確認） |
 | 選択矩形オーバーレイ | `SelectionRectVisible` チェック・選択矩形（`SelectionRectX` / `SelectionRectY` / `SelectionRectWidth` / `SelectionRectHeight`）の編集（対象座標 = 元画像ピクセル）。 テスト画像上に破線の枠＋座標ラベルが表示され、ルーペ内にも破線が描画される |
 | 「ソースを設定」ボタン | `Source` を設定し直す |
-| 「ソースを解除（描画資源を解放）」ボタン | `Clear()` を呼び出して非表示にし、`Source` を解放する |
+| 「ソースを解除（描画資源を解放）」ボタン | `IsVisible` を false にして非表示にし、`Source` を解放する |
 | 「再描画を要求」ボタン | `InvalidateRender()` を呼び出し、プロパティ変更を伴わない再描画を要求 |
 | 「座標変換（拡大率に追従）」チェック | SetCoordTransform で独自の座標変換を渡す（拡大率の変更に追従する） |
 | 「見本の描画計画（格子線・四隅の鉤）」チェック | DrawPlanResolver で描画計画を差し替える |
@@ -75,7 +75,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.Aval
 - [ ] `SelectionRectVisible` を ON にすると、選択矩形（対象座標）の枠線がルーペ画像上にも破線で描画される（ズーム 2 倍以上）
 - [ ] 選択矩形の X / Y / W / H を変更すると、テスト画像上の枠とルーペ内の破線の位置・サイズが変化する
 - [ ] `SelectionRectColorA` / `SelectionRectColorB`（「なし」で非表示・不透明度は色のアルファ）が破線に反映される
-- [ ] チェック OFF / `Clear()` で Bitmap が解放され、チェック ON で再表示される
+- [ ] チェック OFF で非表示になり、チェック ON で再表示される
 - [ ] `InvalidateRender()` で再生成が要求され、`Rendered` が発火する
 - [ ] ルーペの左上に中心座標ラベル（`(x, y)`）が表示され、マウス移動で文言が追従する（コントロールがテキスト要素として表示する。 **文字が欠けない**）
 - [ ] 「ログ レベル」を `Trace` にすると拡大中心の変更ログも表示され、`Warning` にすると通常の操作ログが表示されない

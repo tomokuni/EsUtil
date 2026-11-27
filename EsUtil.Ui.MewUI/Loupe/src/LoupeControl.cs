@@ -201,6 +201,33 @@ public sealed class LoupeControl : Panel
         set => SetValue(CenterPointProperty, value);
     }
 
+    /// <summary>更新の直前に拡大中心を取り直す関数を取得または設定する。</summary>
+    /// <value>拡大中心（<see cref="CenterPoint"/> と同じ対象座標）を返す関数。 null を返すと現在の中心を使う。 null（既定）の場合は取り直さない。</value>
+    /// <remarks>
+    /// <b>ポインター移動イベントの座標は入力へ積まれた分だけ古い</b>ため、ホストは本関数で実カーソルから中心を取り直せる。<br/>
+    /// 返された中心は <see cref="CenterPoint"/> へ反映する（中心座標ラベル・表示位置・拡大画像を同じ中心で揃えるため）。<br/>
+    /// 取り直しの可否（ポインターを追従している最中かどうか）はホストが判断する。<br/>
+    /// 実カーソルの取得と対象座標への変換もホストの責務である。
+    /// </remarks>
+    public Func<EsPoint?>? CenterPointProvider { get; set; }
+
+    /// <summary>表示位置と表示サイズを最新のレイアウトから再計算する（外部からの更新要求）。</summary>
+    /// <remarks>パン・ズーム等のレイアウト非変更なビューポート変化時に、ホストが呼び出す。</remarks>
+    public void RefreshPosition()
+    {
+        ApplyCenterPointProvider();
+        InvalidateRender();
+    }
+
+    /// <summary>保持している拡大中心を <see cref="CenterPointProvider"/> から取り直す。</summary>
+    private void ApplyCenterPointProvider()
+    {
+        if (CenterPointProvider?.Invoke() is { } center)
+        {
+            CenterPoint = center;
+        }
+    }
+
     /// <summary>ルーペの設定（表示サイズ・拡大率）を取得または設定する。</summary>
     /// <value>設定の単一値。 既定はコアの既定値（<see cref="LoupeOptions.Default"/>）。</value>
     /// <remarks>
@@ -449,6 +476,8 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     private LoupeDrawPlan ResolvePlan(double displaySize)
     {
+        ApplyCenterPointProvider();
+
         var scaling = ClientToPixelScaling;
         if (_plan is not { } cached || _planSize != displaySize || _planScaling != scaling)
         {

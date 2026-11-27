@@ -73,6 +73,8 @@
 | メソッド | 説明 |
 | --- | --- |
 | `void SetCoordTransform(ICoordTransform? port)` | 論理座標（対象）↔ 親パネル DIP の座標変換ポートを設定する（null は等価変換）。 変換関数は呼び出しのたびに評価される |
+| `Func<EsPoint?>? CenterPointProvider { get; set; }` | 更新の直前に拡大中心を取り直す関数（描画のたびに呼ぶ。 null を返すと現在の中心を使う） |
+| `void RefreshPosition()` | 拡大中心を取り直してから表示位置と表示サイズを再計算する（パン・ズームへの追随） |
 | `LoupeLayout ResolveLayout(EsSize parentSize)` | **どこへ・どの大きさで置くか**を決める（親領域 DIP の世界）。 親領域サイズから表示レイアウト（表示サイズ + 位置）を解決する。 拡大中心未設定時と、親領域に収められない場合は位置が null。 計算はコアのファサード（`LoupeCore.ResolveLayout`）へ委譲する |
 | `static void DrawPlan(IGraphicsContext canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)` | **既定の描画をホストへ提供する入口**（任意のタイミングと順序で既定の描画を行える）。 拡大元はコアの画像であるため、ホストは元画像の型を判定しなくてよい |
 
@@ -165,4 +167,4 @@ Avalonia 版の再描画パイプライン（InvalidateRender / RenderCore / Gen
 | 項目 | 状況 |
 | --- | --- |
 | 座標変換ポート（`SetCoordTransform`） | 実装済み（`ToDip` = 対象 → 親領域 DIP。 表示位置の計算はコアのファサードが行い、コントロールは本ポートをファサードへ渡す） |
-| 再生成の要求メソッド（`Clear` / `InvalidateRender`） | `InvalidateRender` は実装済み（`InvalidateVisual` へ委譲する）。 `Clear` は持たない（`IsVisible` と `Source` の解除で同じ結果になる） |
+| 再生成の要求メソッド（`RefreshPosition` / `InvalidateRender`） | どちらも実装済み（`RefreshPosition` は拡大中心を取り直してから `InvalidateRender` を呼ぶ）。 非表示は `IsVisible` で行う |

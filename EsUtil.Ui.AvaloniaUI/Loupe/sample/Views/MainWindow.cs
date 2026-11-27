@@ -186,7 +186,6 @@ public sealed class MainWindow : Window
                     ("ソースを設定", () => _loupe.Source = _source),
                     ("ソースを解除（描画資源を解放）", () =>
                     {
-                        _loupe.Clear();
                         _loupe.Source = null;
                         loupeVisible.IsChecked = false;
                     }),

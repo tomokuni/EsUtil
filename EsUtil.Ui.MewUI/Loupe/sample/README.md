@@ -53,7 +53,7 @@ dotnet run -c Release --project EsUtil.Ui.MewUI/Loupe/sample/EsUtil.Ui.MewUI.Lou
 | 「再描画を要求」ボタン | `InvalidateRender()`（プロパティ変更を伴わない再描画要求） |
 | 「座標変換（拡大率に追従）」チェック | SetCoordTransform で独自の座標変換を渡す（拡大率の変更に追従する） |
 | 「見本の描画計画（格子線・四隅の鉤）」チェック | DrawPlanResolver で描画計画を差し替える |
-| 「非表示にして解放」ボタン | Avalonia 版の `Clear()` と同じ結果（`IsVisible` を false にして `Source` を null にする。 「ルーペを表示」のチェックも外れる） |
+| 「非表示にして解放」ボタン | `IsVisible` を false にして `Source` を null にする（「ルーペを表示」のチェックも外れる） |
 | 「ソースを設定して再表示」ボタン | `Source` へテスト画像を設定し、`IsVisible` を true に戻す（**解放した後の復帰はこのボタン**。 チェックだけを入れ直すと `Source` が null のため下地だけが描かれる） |
 | 「選択矩形を表示」チェック | 選択矩形の破線オーバーレイの表示切り替え（画像側とルーペ内の両方） |
 | 選択矩形の X / Y / W / H 入力 | 破線の位置・サイズ（対象座標 = 元画像ピクセル座標）。 変更は `InvalidateRender()` でルーペへ反映する |

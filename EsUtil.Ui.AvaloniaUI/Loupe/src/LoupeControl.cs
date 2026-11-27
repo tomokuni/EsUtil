@@ -55,7 +55,7 @@ namespace EsUtil.Ui.AvaloniaUI.Loupe;
 /// - 位置: <see cref="SetCoordTransform"/> / <see cref="PositionOffset"/> / <see cref="RefreshPosition"/><br/>
 /// - ログ: <see cref="Log"/><br/>
 /// - イベント: <see cref="Rendered"/>（描画完了時に描画済み Bitmap と表示情報を通知。 ホストが Bitmap に直接オーバーレイを描画できる）<br/>
-/// - 操作: <see cref="Clear()"/>（非表示にしてビットマップを解放） / <see cref="InvalidateRender()"/>（プロパティ変更を伴わない再生成要求）<br/>
+/// - 操作: <see cref="RefreshPosition"/>（位置の取り直し。 非表示にする場合は枠組みの可視性を使う） / <see cref="InvalidateRender()"/>（プロパティ変更を伴わない再生成要求）<br/>
 /// - 見た目のカスタマイズ: <see cref="Appearance"/>（色・太さ・表示可否） / <see cref="DrawPlanResolver"/>（矩形の並び・文言・位置） / <see cref="DrawPlan"/>（自前描画への既定描画の提供）
 /// </remarks>
 public sealed class LoupeControl : Panel
@@ -608,7 +608,6 @@ public sealed class LoupeControl : Panel
     /// <see cref="Visual.IsVisible"/> を false に設定する（既に非表示の場合は何も起きない。 冪等）。<br/>
     /// 拡大元画像（<see cref="Source"/>）はホストが所有するため、破棄の判断もホストが行う。
     /// </remarks>
-    public void Clear() => IsVisible = false;
 
     /// <summary>現在の状態からルーペの再描画を要求する（プロパティ変更を伴わない再描画要求）。</summary>
     /// <remarks>

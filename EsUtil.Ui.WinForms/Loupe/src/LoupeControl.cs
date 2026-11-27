@@ -194,6 +194,34 @@ public sealed class LoupeControl : Control
         }
     }
 
+    /// <summary>更新の直前に拡大中心を取り直す関数を取得または設定する。</summary>
+    /// <value>拡大中心（<see cref="CenterPoint"/> と同じ対象座標）を返す関数。 null を返すと現在の中心を使う。 null（既定）の場合は取り直さない。</value>
+    /// <remarks>
+    /// <b>ポインター移動イベントの座標は入力へ積まれた分だけ古い</b>ため、ホストは本関数で実カーソルから中心を取り直せる。<br/>
+    /// 返された中心は <see cref="CenterPoint"/> へ反映する（中心座標ラベル・表示位置・拡大画像を同じ中心で揃えるため）。<br/>
+    /// 取り直しの可否（ポインターを追従している最中かどうか）はホストが判断する。<br/>
+    /// 実カーソルの取得と対象座標への変換もホストの責務である。
+    /// </remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Func<EsPoint?>? CenterPointProvider { get; set; }
+
+    /// <summary>表示位置と表示サイズを最新のレイアウトから再計算する（外部からの更新要求）。</summary>
+    /// <remarks>パン・ズーム等のレイアウト非変更なビューポート変化時に、ホストが呼び出す。</remarks>
+    public void RefreshPosition()
+    {
+        ApplyCenterPointProvider();
+        InvalidateRender();
+    }
+
+    /// <summary>保持している拡大中心を <see cref="CenterPointProvider"/> から取り直す。</summary>
+    private void ApplyCenterPointProvider()
+    {
+        if (CenterPointProvider?.Invoke() is { } center)
+        {
+            CenterPoint = center;
+        }
+    }
     /// <summary>ルーペ中心からの右下オフセット（DIP）を取得または設定する。</summary>
     /// <value>カーソル位置（拡大中心）からの右下方向へのオフセット量（DIP）。 既定は 0。</value>
     /// <remarks>
@@ -417,6 +445,7 @@ public sealed class LoupeControl : Control
             return;
         }
 
+        ApplyCenterPointProvider();
         var plan = ResolveCurrentPlan();
         // 割り当て（DIP）と面（物理ピクセル）の対応を、他 UI と同じ書式で 1 行だけ残す
         var dipSize = DpiScaler.ToDip(

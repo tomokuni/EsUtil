@@ -484,7 +484,7 @@ public class LoupeControlTests
         await control.WaitForRenderedAsync();
         Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
 
-        control.Clear();
+        control.IsVisible = false;
         // 非表示にした直後に残っている描画要求と画像の生成を流し切ってから判定する（静まるまで待つ）
         await AdvanceUntilQuietAsync(control);
 
@@ -1208,7 +1208,7 @@ public class LoupeControlTests
 
         // 描画を実行して描画のログ経路（LoupeLogMessage）を通す
         await control.WaitForRenderedAsync();
-        control.Clear();
+        control.IsVisible = false;
         window.Close();
     }
 

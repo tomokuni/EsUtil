@@ -87,6 +87,8 @@
 | `LoupeLayout ResolveLayout(EsSize parentSize)` | 親領域のサイズ（DIP）から表示レイアウト（表示サイズ（DIP）と表示位置（DIP））を解決します。 位置は「拡大中心が未設定」「親領域が表示サイズを収められない」の場合に `null` になります |
 | `int ToClientPixel(double dipValue)` | DIP の長さを物理ピクセルへ換算します（切り上げ・最低 1）。 `ResolveLayout` の結果を配置へ写す入口です |
 | `void InvalidateRender()` | プロパティの変更を伴わない再描画を要求します（DPI の変更・親の再配置など） |
+| `Func<EsPoint?>? CenterPointProvider { get; set; }` | 更新の直前に拡大中心を取り直す関数です（null を返すと現在の中心を使います） |
+| `void RefreshPosition()` | 拡大中心を取り直してから表示位置と表示サイズを再計算します（パン・ズームへの追随） |
 | `EsSize ToDipSize(Size clientPixelSize)` | クライアント座標（物理ピクセル）のサイズを DIP へ換算します。 `ResolveLayout` へ渡す親領域のサイズを作る入口です |
 | `static void DrawPlan(Graphics graphics, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)` | 描画計画を指定の描画面へ描きます（既定の描画をホストが任意の順序で行うための入口）。 `graphics` が null の場合は `ArgumentNullException` |
 | `double ApplyClientPixelScaling()`（内部・テストが参照） | クライアント領域と DPI から実効倍率を解決し、`ClientToPixelScaling` へ反映します。 保持値の更新は自動で行われるため、ホストが呼ぶ必要はありません |

@@ -26,10 +26,9 @@
     - [5.1.10 CenterPointProvider（描画の直前の拡大中心の取り直し）](#5110-centerpointprovider描画の直前の拡大中心の取り直し)
   - [5.2 メソッド](#52-メソッド)
     - [5.2.1 InvalidateRender](#521-invalidaterender)
-    - [5.2.2 Clear](#522-clear)
-    - [5.2.3 SetCoordTransform](#523-setcoordtransform)
-    - [5.2.4 RefreshPosition](#524-refreshposition)
-    - [5.2.5 DrawPlan（既定の描画の提供）](#525-drawplan既定の描画の提供)
+    - [5.2.2 SetCoordTransform](#522-setcoordtransform)
+    - [5.2.3 RefreshPosition](#523-refreshposition)
+    - [5.2.4 DrawPlan（既定の描画の提供）](#524-drawplan既定の描画の提供)
   - [5.3 表示位置・サイズの自己計算（座標変換ポート方式）](#53-表示位置サイズの自己計算座標変換ポート方式)
     - [5.3.1 PositionOffset](#531-positionoffset)
   - [5.4 イベント](#54-イベント)
@@ -376,19 +375,7 @@ void InvalidateRender()
 loupe.InvalidateRender();
 ```
 
-#### 5.2.2 Clear
-
-```csharp
-void Clear()
-```
-
-ルーペを非表示にします（解放する中間 Bitmap は無いため、`IsVisible = false` と等価です）。
-
-```csharp
-loupe.Clear();
-```
-
-#### 5.2.3 SetCoordTransform
+#### 5.2.2 SetCoordTransform
 
 ```csharp
 void SetCoordTransform(ICoordTransform? port)
@@ -398,7 +385,7 @@ void SetCoordTransform(ICoordTransform? port)
 
 変換関数は呼び出し毎に評価されるため、ウィンドウサイズ変更・ズーム・スクロール等のレイアウト変化に追従できます。 表示位置・サイズは本ポートから自己計算されます（イベント時の DIP キャッシュは使わない）。
 
-#### 5.2.4 RefreshPosition
+#### 5.2.3 RefreshPosition
 
 ```csharp
 void RefreshPosition()
@@ -408,7 +395,7 @@ void RefreshPosition()
 
 座標変換ポートは呼び出し毎に最新の表示状態を評価するため、パン・ズーム等のレイアウト非変更なビューポート変化時にホスト（上位 AP）が呼び出すことで、再計算だけで追従できます。
 
-#### 5.2.5 DrawPlan（既定の描画の提供）
+#### 5.2.4 DrawPlan（既定の描画の提供）
 
 ```csharp
 static void DrawPlan(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, IImage? display = null)
@@ -605,5 +592,5 @@ dotnet run --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loup
 - `Options`（`ZoomLevel` / `RequestedSize`）と `Appearance`（色・枠線の太さ・表示可否）・`ClientToPixelScaling`
 - 十字線・枠線の色変更（`Appearance`）
 - 外観（`Appearance`）と描画計画（`DrawPlanResolver`）による見た目の差し替え（`sample/Presentation/`。 格子線と四隅の鉤の例）
-- `IsVisible`、`Clear()`、`InvalidateRender()`
+- `IsVisible`、`RefreshPosition()`、`InvalidateRender()`
 - `Log`（描画エラーの通知先 ILogger 設定例）
