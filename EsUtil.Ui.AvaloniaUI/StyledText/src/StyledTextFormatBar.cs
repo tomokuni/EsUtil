@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
@@ -343,11 +344,13 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
         if (IsInside(source, _color))
         {
             ApplyColor();
+            RestoreFocusAfterInput();
             e.Handled = true;
         }
         else if (IsInside(source, _size))
         {
             ApplySize();
+            RestoreFocusAfterInput();
             e.Handled = true;
         }
     }
@@ -387,7 +390,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
             return;
         }
 
-        Apply(style => style with { FontFamily = family });
+        Apply(style => style with { FontFamily = family }, restoreFocus: false);
         ToolTip.SetTip(_font, family);
     }
 
@@ -399,7 +402,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
             return;
         }
 
-        Apply(style => style with { FontSize = (double)value });
+        Apply(style => style with { FontSize = (double)value }, restoreFocus: false);
         ToolTip.SetTip(_size, $"{value:0.#}");
     }
 
@@ -412,21 +415,40 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
             return;
         }
 
-        Apply(style => style with { Color = color });
+        Apply(style => style with { Color = color }, restoreFocus: false);
     }
 
-    /// <summary>選択中の範囲へ書式を適用し、表示とフォーカスを戻す。</summary>
+    /// <summary>選択中の範囲へ書式を適用し、表示を更新する。</summary>
     /// <param name="change">書式を新しい値へ変える処理（変えない属性は <c>TransformTextStyle</c> が保つ）。</param>
+    /// <param name="restoreFocus">適用の後に本文へフォーカスを戻すか（入力欄からの適用では <see langword="false"/>）。</param>
     /// <remarks>
-    /// <b>選択が無いときは以降の入力へ回す</b>（判定はレイヤーが単一所有するので、ここでは分けない）。
+    /// <b>選択が無いときは以降の入力へ回す</b>（判定はレイヤーが単一所有するので、ここでは分けない）。<br/>
+    /// <b>入力欄からの適用ではフォーカスを戻さない</b>: 入力の途中で本文へ戻すと、その後に打った文字が
+    /// 本文へ入る（色の入力欄で実測）。 戻すのは押したボタンのように操作が終わっている場合と、
+    /// <c>Enter</c> の処理が終わった後（<see cref="RestoreFocusAfterInput"/>）だけにする。
     /// </remarks>
-    private void Apply(Func<TextStyle, TextStyle> change)
+    private void Apply(Func<TextStyle, TextStyle> change, bool restoreFocus = true)
     {
         _context.TransformTextStyle(change);
         Refresh();
 
-        // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
-        _requestFocus?.Invoke();
+        if (restoreFocus)
+        {
+            _requestFocus?.Invoke();
+        }
+    }
+
+    /// <summary>本文へフォーカスを戻す（今のキー入力を処理し終えてから戻す）。</summary>
+    /// <remarks>
+    /// <b>同じキーの文字入力を残さない</b>: <c>Enter</c> はキーの通知の後に文字（改行）の通知が続く。
+    /// 通知の途中で本文へ戻すと、その改行が本文へ入る（大きさの入力欄で実測）。
+    /// </remarks>
+    private void RestoreFocusAfterInput()
+    {
+        if (_requestFocus is { } request)
+        {
+            Dispatcher.UIThread.Post(request, DispatcherPriority.Background);
+        }
     }
 
     /// <summary>装飾の切り替えボタンを作る。</summary>
