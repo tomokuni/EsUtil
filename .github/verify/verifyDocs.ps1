@@ -1285,6 +1285,16 @@ foreach ($f in @($allCsproj)) {
     if ($first.Count -eq 0 -or $first[0].Text -ne "$project 手動確認書") {
         $manualIssues.Add(("{0}:1  H1 が「{1} 手動確認書」でない" -f $rel, $project))
     }
+
+    # AI が実施できる項目（画面キャプチャ）と、人が実施する項目（AI は実施できない）に分かれていること。
+    # 分けていないと、AI が実施できる項目まで「手作業」として残る（規則はドキュメント規約 §12）。
+    $h2 = @($docHeadings | Where-Object { $_.Level -eq 2 } | ForEach-Object { $_.Text })
+    if (-not ($h2 -contains '1. AI が実施できる項目（画面キャプチャ）')) {
+        $manualIssues.Add(("{0}  節「1. AI が実施できる項目（画面キャプチャ）」が無い" -f $rel))
+    }
+    if (-not ($h2 -contains '2. 人が実施する項目（AI は実施できない）')) {
+        $manualIssues.Add(("{0}  節「2. 人が実施する項目（AI は実施できない）」が無い" -f $rel))
+    }
 }
 Add-Result 'GUI の手動確認書' ($manualIssues.Count -eq 0) "対象 $manualChecked 件 / 不備 $($manualIssues.Count) 件"
 $manualIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
